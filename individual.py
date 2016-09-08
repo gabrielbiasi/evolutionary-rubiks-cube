@@ -23,23 +23,14 @@ class Individual(object):
         self.fitness = [-1,-1,-1,-1,-1]
         self.phase = 0
 
-        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-        self.g = [                                  #-#-#-#-
-        ['L',  'R' , 'F' , 'B' , 'U' , 'D' ],       # G0   #
-        ['L',  'R' , 'F' , 'B' , 'U2', 'D2'],       # G1   #
-        ['L',  'R' , 'F' , 'B' , 'U2', 'D2'],       # G1.2 #
-        ['L',  'R' , 'F2', 'B2', 'U2', 'D2'],       # G2   #
-        ['L2', 'R2', 'F2', 'B2', 'U2', 'D2']]       # G3   #
-        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-
-        '''#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
         self.g = [                              #-#-#-#-
         ['F', 'R', 'U', 'B', 'L', 'D' ],        # G0   #
         ['F', 'U', 'B', 'D', 'R2', 'L2'],       # G1   #
         ['F', 'U', 'B', 'D', 'R2', 'L2'],       # G1.2 #
         ['U', 'D', 'R2', 'L2', 'F2', 'B2'],     # G2   #
         ['F2', 'R2', 'U2', 'B2', 'L2', 'D2']]   # G3   #
-        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-'''
+        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
     def __repr__(self):
@@ -47,7 +38,7 @@ class Individual(object):
 
 
     def __str__(self):
-        cube = self.get_cube(self.genes)
+        cube = self.get_cube()
         cube.colored_printf()
         return "{}[L{}][F{}]".format(self.genes, len(self.genes), self.fitness)
 
@@ -70,32 +61,36 @@ class Individual(object):
     def get_fitness(self, phase):
         self.phase = phase
         c = len(self.genes)
-        my_cube = self.get_cube(self.genes)
+        my_cube = self.get_cube()
 
         if self.fitness[self.phase] == -1:
             result = 0
             if self.phase == 0:
                 w = 0
 
-                f = my_cube.matrix[0] # FRONT
-                l = [f[0][1], f[2][1], f[1][0], f[1][2]]
-                w += l.count('G')
-                w += l.count('B')
+                edge_pieces = [
+                    (my_cube.matrix[0][1][0], my_cube.matrix[1][1][2]), # O->G
+                    (my_cube.matrix[0][1][2], my_cube.matrix[2][1][0]), # O->B
+                    (my_cube.matrix[0][0][1], my_cube.matrix[4][2][1]), # O->Y
+                    (my_cube.matrix[0][2][1], my_cube.matrix[5][0][1]), # O->W
 
-                f = my_cube.matrix[1] # LEFT
-                l = [f[0][1], f[2][1], f[1][0], f[1][2]]
-                w += l.count('R')
-                w += l.count('O')
+                    (my_cube.matrix[3][1][0], my_cube.matrix[2][1][2]), # R->B
+                    (my_cube.matrix[3][1][2], my_cube.matrix[1][1][0]), # R->G
+                    (my_cube.matrix[3][0][1], my_cube.matrix[4][0][1]), # R->Y
+                    (my_cube.matrix[3][2][1], my_cube.matrix[5][2][1]), # R->W
 
-                f = my_cube.matrix[2] # RIGHT
-                l = [f[0][1], f[2][1], f[1][0], f[1][2]]
-                w += l.count('R')
-                w += l.count('O')
+                    (my_cube.matrix[1][0][1], my_cube.matrix[4][1][0]), # G->Y
+                    (my_cube.matrix[1][2][1], my_cube.matrix[5][1][0]), # G->W
 
-                f = my_cube.matrix[3] # BACK
-                l = [f[0][1], f[2][1], f[1][0], f[1][2]]
-                w += l.count('G')
-                w += l.count('B')
+                    (my_cube.matrix[2][0][1], my_cube.matrix[4][1][2]), # B->Y
+                    (my_cube.matrix[2][2][1], my_cube.matrix[5][1][2])  # B->W
+                ]
+
+                for piece in edge_pieces:
+                    if piece[0] in ['Y', 'W']:
+                        w += 1
+                    elif piece[0] in ['B', 'G'] and piece[1] in ['O', 'R']:
+                        w += 1
 
                 result = (5 * (2 * w)) + c
 
@@ -103,19 +98,19 @@ class Individual(object):
                 w = 0
                 f = my_cube.matrix[0]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('O')
+                w += 2 - l.count('O') - l.count('R')
 
                 f = my_cube.matrix[1]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('G')
+                w += 2 - l.count('B') - l.count('G')
 
                 f = my_cube.matrix[2]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('B')
+                w += 2 - l.count('B') - l.count('G')
 
                 f = my_cube.matrix[3]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('R')
+                w += 2 - l.count('O') - l.count('R')
 
                 result = (5 * (2 * w)) + c
 
@@ -124,38 +119,51 @@ class Individual(object):
                 w = 0
                 f = my_cube.matrix[0]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('O')
+                w += 2 - l.count('O') - l.count('R')
 
                 f = my_cube.matrix[1]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('G')
+                w += 2 - l.count('B') - l.count('G')
 
                 f = my_cube.matrix[2]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('B')
+                w += 2 - l.count('B') - l.count('G')
 
                 f = my_cube.matrix[3]
                 l = [f[1][0], f[1][2]]
-                w += 2 - l.count('R')
+                w += 2 - l.count('O') - l.count('R')
 
                 result = (5 * (2 * w)) + c
                 # end of the same code of phase1 #
 
                 v = 0
 
-                f = my_cube.matrix[1]
+                f = my_cube.matrix[4]
                 l = [f[0][0], f[0][2], f[2][0], f[2][2]]
-                v += 4 - l.count('G') - l.count('B')
+                v += 4 - l.count('Y') - l.count('W')
 
-                f = my_cube.matrix[2]
+                f = my_cube.matrix[5]
                 l = [f[0][0], f[0][2], f[2][0], f[2][2]]
-                v += 4 - l.count('G') - l.count('B')
+                v += 4 - l.count('Y') - l.count('W')
 
 
                 result = (10 * (4 * v)) + result
 
             elif self.phase == 3:
                 x, y = 0, 0
+                all_corners = [
+                    (my_cube.matrix[0][0][0], my_cube.matrix[1][0][2]), #O->G
+                    (my_cube.matrix[0][2][0], my_cube.matrix[1][2][2]), #O->G
+
+                    (my_cube.matrix[0][0][2], my_cube.matrix[2][0][0]), #O->B
+                    (my_cube.matrix[0][2][2], my_cube.matrix[2][2][0]), #O->B
+
+                    (my_cube.matrix[3][0][0], my_cube.matrix[2][0][2]), #R->B
+                    (my_cube.matrix[3][2][0], my_cube.matrix[2][2][2]), #R->B
+
+                    (my_cube.matrix[3][0][2], my_cube.matrix[1][0][0]), #R->G
+                    (my_cube.matrix[3][2][2], my_cube.matrix[1][2][0]), #R->G
+                ]
                 OP = {'O':'R','R':'O','W':'Y','Y':'W','G':'B','B':'G'}
                 for face in my_cube.matrix:
                     center = face[1][1]
@@ -163,6 +171,10 @@ class Individual(object):
                         for j in range(3):
                             if face[i][j] != center and face[i][j] != OP[center]:
                                 x += 1
+
+                #for corner in all_corners:
+                #    if corner[0] != corner[1]:
+                #        y += 1
 
                 result = 5 * (x + (2 * y)) + c
 
@@ -182,10 +194,10 @@ class Individual(object):
         return self.fitness[self.phase]
 
 
-    def get_cube(self, genes_list):
+    def get_cube(self):
         my_cube = copy.deepcopy(self.cube)
 
-        for gene in genes_list:
+        for gene in self.genes:
             mode = 0
             if len(gene) == 2:
                 mode = 1 if gene[1] == 'i' else 2

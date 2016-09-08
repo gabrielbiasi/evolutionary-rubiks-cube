@@ -96,7 +96,6 @@ class Cube(object):
             print
 
         print color_dic['W']
-        print '----------------------------------------------------------------'
 
     def move_f(self, mode):
         U4, R2, D5, L1 = list(), list(), list(), list()

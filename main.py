@@ -22,20 +22,24 @@ PHASE_COUNTER = 0
 #--------------------------------------------------------------
 
 import re, sys, random, copy
+from timeit import default_timer as timer
+
 from individual import Individual
 from cube import Cube
 
-import traceback
-
 file_info = None
+best = None
+t1 = 0.0
+t2 = 0.0
 
 def to_file(best):
+    t2 = timer()
     best_file = open("best/best{}.txt".format(sys.argv[2]), "w")
     for gene in best.genes:
         best_file.write(gene + ' ')
     best_file.close()
     file_info.close()
-    print
+    print 'TIME ELAPSED %dm %ds' % ((t2-t1)/60, (t2-t1)%60)
     exit()
 
 
@@ -51,9 +55,10 @@ def generate_population(size, cube):
 
 
 def evolution(cube):
-    global PHASE_COUNTER
+    global best, t1, PHASE_COUNTER
+    random.seed(timer())
 
-    random.seed()
+    t1 = timer()
     population = generate_population(LAMBDA, cube)
 
     # Controle geral das gerações
@@ -83,20 +88,23 @@ def evolution(cube):
                     print 'FOUND!'
                     to_file(best)
 
-            # Mudança de fase!
-            if solved_phase:
-                PHASE_COUNTER += 1
-                print 'NEW PHASE!'
-
             #--------------------------------------------------------------
             #--------------------- OBTENÇÃO DE DADOS ----------------------
             #--------------------------------------------------------------
-            file_info.write('%d %d %d %d\n' % (generation, PHASE_COUNTER, solved_phase, best.get_fitness(PHASE_COUNTER)))
-            sys.stdout.write('\rG %d\tPhase: %d/4\tSolved.: %d/%d\t' % (generation, PHASE_COUNTER, solved_count, THETA))
+            t_now = timer()
+            m = (t_now-t1) / 60
+            s = (t_now-t1) % 60
+            file_info.write('%d %d %d %d %d %d\n' % (generation, PHASE_COUNTER, solved_count, len(best.genes), m,s))
+            sys.stdout.write('\rG %d (%dm %ds)\tPhase: %d/4\tSolved.: %d/%d\t' % (generation, m, s, PHASE_COUNTER, solved_count, THETA))
             sys.stdout.flush()
             #--------------------------------------------------------------
             #--------------------------------------------------------------
             #--------------------------------------------------------------
+
+            # Mudança de fase!
+            if solved_phase:
+                PHASE_COUNTER += 1
+                print 'NEW PHASE!'
 
             i = 0
             new_size = len(candidates)
@@ -163,12 +171,13 @@ if __name__ == '__main__':
             data = file.readline()
             genes = [str(x) for x in re.findall('(\S\S*)', data)]
 
+            print '%d MOVES' % len(genes)
             my_move = Individual(cube, genes)
-            my_move.apply(my_move.genes)
-            fit = my_move.get_fitness(0)
-            print my_move
+            result = my_move.get_cube()
+            result.colored_printf()
     else:
         print 'EVOLUTION'
         file_info = open('data/data{}.txt'.format(sys.argv[2]), 'w')
         file_info.write('%d %d %d\n' % (THETA, LAMBDA, GENERATIONS))
+        best = Individual(cube)
         evolution(cube)
