@@ -21,7 +21,7 @@ class Cube(object):
                 self.matrix[i].append(list())
                 for k in range(3):
                     self.matrix[i][j].append(list())
-        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 
 
     def set_color(self, x, y, z, color):
@@ -61,14 +61,7 @@ class Cube(object):
             print
 
     def colored_printf(self):
-        color_dic = {
-            'W': '\033[1;0m',
-            'R': '\033[1;31m',
-            'G': '\033[1;32m',
-            'O': '\033[0;33m',
-            'B': '\033[1;34m',
-            'Y': '\033[1;33m'
-        }
+        color_dic = {'W':'\033[1;0m','R':'\033[1;31m','G':'\033[1;32m','O':'\033[0;33m','B':'\033[1;34m','Y':'\033[1;33m'}
 
         for line in self.matrix[4]:
             for i in range(2):
