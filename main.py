@@ -10,13 +10,15 @@ Trabalho Prático 1
 
 Feito por Gabriel de Biasi, 2016672212.
 """
+
 #--------------------------------------------------------------#
 #------------------------ CONSTANTES --------------------------#
 #--------------------------------------------------------------#
 
+SEED = 12345        # Semente p/ o gerador de pseudo-aleatórios
 GENERATIONS = 100   # Máximo de gerações
 LAMBDA = 50000      # Tamanho da população
-THETA = 1000        # Necessário para troca de fase
+THETA = 1000        # Indivíduos necessários para troca de fase
 
 #--------------------------------------------------------------#
 
@@ -68,10 +70,11 @@ def evolution(cube):
     Gera a população e gerencia o fluxo
     das gerações.
     '''
+    random.seed(SEED)
     global best, t1, PHASE_COUNTER
-    random.seed(timer())
 
     t1 = timer() # Timer inicia neste ponto
+    t_ant = t1
     population = generate_population(LAMBDA, cube)
 
     # Controle geral das gerações
@@ -125,8 +128,9 @@ def evolution(cube):
             t_now = timer()
             m = (t_now-t1) / 60
             s = (t_now-t1) % 60
-            sys.stdout.write('G %d (%dm %ds)\tPhase: %d/5\tSolved.: %d/%d\n' % (generation, m, s, PHASE_COUNTER, solved_count, THETA))
-            sys.stdout.flush()
+            t_gen = (t_now - t_ant)
+            print 'G %02d\tPhase: %d/5\tSolved.: %04d/%04d\t[%02dm %02ds] +%02ds' % (generation, PHASE_COUNTER, solved_count, THETA, m, s, t_gen)
+            t_ant = t_now
             #--------------------------------------------------------------
             #--------------------------------------------------------------
             #--------------------------------------------------------------
@@ -217,11 +221,11 @@ if __name__ == '__main__':
             data = file.readline()
             genes = [str(x) for x in re.findall('(\S\S*)', data)]
 
-            print '%d MOVES' % len(genes)
+            print genes, len(genes)
             my_move = Individual(cube)
             my_move.apply(genes)
+            my_move.cube.printf()
             my_move.cube.colored_printf()
-            print genes
     else:
         '''
         Condição normal do algoritmo, a função

@@ -17,10 +17,10 @@
 \author{Gabriel de Biasi\inst{1}}
 
 \address{
-Departamento de Ciência da Computação\\
-Universidade Federal de Minas Gerais\\
-Av. Antônio Carlos, 6627 -- Pampulha -- Belo Horizonte -- MG
-\email{biasi@dcc.ufmg.br}
+  Departamento de Ciência da Computação\\
+  Universidade Federal de Minas Gerais\\
+  Av. Antônio Carlos, 6627 -- Pampulha -- Belo Horizonte -- MG
+  \email{biasi@dcc.ufmg.br}
 }
 
 \begin{document}
@@ -147,62 +147,64 @@ Av. Antônio Carlos, 6627 -- Pampulha -- Belo Horizonte -- MG
     \end{table}
 
   \subsection{Função $fitness$} \label{fit}
-    Para adequar-se ao estilo de categorias, foi necessário criar quatro funções de $fitness$ diferentes, sendo uma para cada mudança de categoria. Nas próximas subseções, é apresentado cada uma delas.
+    Para adequar-se ao estilo de categorias, foi necessário criar seis funções de $fitness$ diferentes, definidas como fases. O objetivo do algoritmo é \textbf{minimizar} os valores de $fitness$ de cada fase. Todos os valores terão o tamanho do indivíduo acrescentado à eles, portanto um indivíduo está resolvido para uma fase atual quando:
 
-    Todas as condições que são apresentadas nas próximas seções são ruins, ou seja, na implementação o valor do $fitness$ recebe acrécimo de valor por condição satisfeita e o objetivo dos indivíduos é minimizar este valor.
+    \begin{equation}
+    fitness\_fase_i = c
+    \end{equation}
 
-    Para fins de padronização, o cubo mágico que estamos trabalhando tem a frente com a cor laranja, atrás com a cor vermelha, topo com a cor amarela, baixo com a cor branca, esquerda com a cor verde e a direita com a cor azul.
+    Onde $c$ representa a quantidade de movimentos do indivíduo e $i$ representa a fase atual do algoritmo.
+
+    Para fins de padronização, o cubo mágico deste algoritmo tem a face da frente com a cor laranja, face  de trás com a cor vermelha, face do topo com a cor amarela, face de baixo com a cor branca, face da esquerda com a cor verde e a face da direita com a cor azul.
 
     \subsubsection{Mudança de $G0 \to G1$}
-      Neste momento, precisamos verificar se os movimentos dos indivíduos deixam o cubo no estado G1, onde os meios estão orientados. Logo, é feita as seguintes verifições nas faces \textbf{frente, atrás, esquerda e direita}:
+      Neste momento, precisamos verificar se os movimentos dos indivíduos deixam o cubo no estado G1, onde os meios do cubo mágico estão orientados. Sendo $w$ o número de meios mal-orientados, a função de fitness é definida como:
 
-      \begin{itemize}
-         \item Cor amarela/branca nos meios da face;
-         \item Cor azul/verde nos meios da face porém junto com laranja/vermelha nos lados.
-       \end{itemize}
-
-      Se algum destes casos forem verdadeiros, o cubo ainda não pertence à categoria G1. Esta fase do algoritmo tende à ser a mais rápida, pois no pior caso são necessários apenas sete movimentos para orientar os meios.
+      \begin{equation}
+      fitness\_fase_0 = (10 \times w) + c
+      \end{equation}
 
     \subsubsection{Mudança de $G1 \to G2$}
-      Como os cubos G1 já estão com os meios orientados, nesta fase os meios que pertencem à camada do meio precisam ser colocados lá, porém não é necessário colocá-lo em seu local exato, apenas na camada.
+      Nesta fase os meios que pertencem à camada do meio precisam ser colocados em sua camada, porém não é necessário colocá-lo em seu local exato. Sendo $w$ o número de meios fora da camada do meio, a função de fitness é definida como:
+      
+      \begin{equation}
+      fitness\_fase_1 = (10 \times w) + c
+      \end{equation}
 
-      Para colocar os cubos meio na camada do meio é feita a seguinte verificação nas faces \textbf{frente, atrás, esquerda e direita}:
-      \begin{itemize}
-        \item Cubos meio da camada do meio fora da camada;
-      \end{itemize}
+      Ainda na mesma categoria, agora nesta nova fase os cantos também precisam ser orientados. Sendo $v$ o número de cantos mal-orientados, a função de fitness é definida como:
 
-      Agora, nesta fase os cantos também precisam ser orientados. Para orientar os cantos, é feita a seguinte verificação nas faces \textbf{topo e baixo}:
+      \begin{equation}
+      fitness\_fase_2 = (40 \times v) + fitness\_fase_1
+      \end{equation}
 
-      \begin{itemize}
-        \item Cores azul/verde nos cantos da face;
-        \item Cores vermelho/laranja nos cantos da face.
-      \end{itemize}
-
-      Se algum destes casos forem verdadeiros, o cubo ainda não pertence à categoria G2. Esta fase do algoritmo é um pouco mais lenta, pois trabalha com dois processos distintos. Na implementação real, este processo foi dividido em 2 sub-fases para melhor convergência.
+      Como as fases 1 e 2 são parte do mesmo grupo de movimentos, suas funções de $fitness$ foram separadas para melhor convergência porém no cálculo final são agregadas para garantir o mesmo resultado final.
 
     \subsubsection{Mudança de $G2 \to G3$}
-      Os cubos na categoria G2 possuem suas faces topo e baixo com suas cores amarelo/branco. Agora, é necessário fazer o mesmo para o resto das faces. Além disso, é preciso igualar as cores dos cantos 
+      Os cubos na categoria G2 possuem suas faces topo e baixo com suas cores amarelo/branco. Agora, é necessário igualar as cores dos pares de cantos do cubo.
 
-      Portanto, para alcançar a categoria G3, é feita a seguinte verificação nas faces \textbf{frente, atrás, esquerda e direita}:
+      Cada par de cantos do cubo mágico neste algoritmo é definido como o canto que está na camada do topo junto ao canto que está na camada de baixo, formando uma ``coluna'' no cubo mágico. Sendo $y$ o número de cada par de cantos incorretos, a função de $fitness$ é definida como:
 
-      \begin{itemize}
-        \item As duas cores dos cantos da camada de cima são diferentes das cores dos cantos da camada de baixo (cores dos cantos que estão nas faces cima/baixo não são consideradas), verificado para os quatro pares de cantos;
-        \item Cores vermelho/laranja na faces esquerda/direita;
-        \item Cores azul/verde nas faces frente/atrás.
-      \end{itemize}
+      \begin{equation}
+      fitness\_fase_3 = (5 \times y) + c
+      \end{equation}
 
-      Se algum destes casos forem verdadeiros, o cubo ainda não pertence à categoria G3.
-      Esta fase do algoritmo também é lenta, pois são necessários muitos movimentos para as cores irem as suas respectivas faces.
+      Ainda nesta categoria, agora é preciso fazer que cada face do cubo tenha sua cor correta ou sua cor oposta. Sendo $x$ o número de cores erradas para todas as faces e $y$ o número de pares de cantos incorretos da fase anterior, a função de $fitness$ é definida como: 
+
+      \begin{equation}
+      fitness\_fase_4 = (5 \times (x + 2 \times y)) + c
+      \end{equation}
+
+      Como as fases 3 e 4 também fazem parte do mesmo grupo de movimentos, suas funções de $fitness$ também foram separadas, similar ao processo das fases 1 e 2.
 
     \subsubsection{Mudança de $G3 \to G4$}
-      Neste ponto, todos os cubos estão na categoria G3 e possuem apenas cores corretas e cores opostas em suas faces. É necessário agora apenas os movimentos duplos para concluir o cubo mágico. Para avançar para a categoria G4, é feita a seguinte verificação em \textbf{todas} as faces:
+      Neste ponto, todos os cubos estão na categoria G3 e possuem apenas cores corretas e cores opostas em suas faces. É necessário agora apenas os movimentos duplos para concluir o cubo mágico. Sendo $z$ o número de cores que não estão na sua face correta, a função de $fitness$ é definida como:
 
-      \begin{itemize}
-        \item Cores que não combinam com a cor do centro da face.
-      \end{itemize}
+      \begin{equation}
+      fitness\_fase_5 = (5 \times z) + c
+      \end{equation}
 
-      Se este caso for verdadeiro, o cubo ainda não pertence à categoria G4.
-      Esta fase do algoritmo vários movimentos duplos são necessários para resolvê-lo. Também é considera uma fase lenta. Entretanto, os indivíduos que passarem por esta fase concluem o objetivo do jogo.
+      O algoritmo encerra ao primeiro indivíduo que obtiver a $fitness\_fase_5 = c$, pois
+      pela ordenação da fase de seleção terá a menor quantidade de movimentos.
 
 \section{Execução dos Experimentos}
   lala

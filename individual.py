@@ -9,9 +9,34 @@ Trabalho Prático 1
 
 Feito por Gabriel de Biasi, 2016672212.
 """
+
+#--------------------------------------------------------------#
+#------------------------ CONSTANTES --------------------------#
+#--------------------------------------------------------------#
+#-#-# Pressão seletiva de cada fase #-#-#
+CONST_PHASE_0 = 10
+CONST_PHASE_1 = 10
+CONST_PHASE_2 = 50
+CONST_PHASE_3 = 10
+CONST_PHASE_4 = 50
+CONST_PHASE_5 = 10
+
+# G0, G1.1, G1.2, G2.1, G2.2, G3
+PHASE_START = [0,  1,  1,  2,  2,  4]
+PHASE_END   = [7, 13, 13, 15, 15, 17]
+
+MOVES_SET = [                                #-#-#-#-
+    ['L',  'R',  'F',  'B',  'U',  'D' ],    # G0   #
+    ['L2', 'R2', 'F',  'B',  'U',  'D' ],    # G1.1 #
+    ['L2', 'R2', 'F',  'B',  'U',  'D' ],    # G1.2 #
+    ['L2', 'R2', 'F2', 'B2', 'U',  'D' ],    # G2.1 #
+    ['L2', 'R2', 'F2', 'B2', 'U',  'D' ],    # G2.2 #
+    ['F2', 'R2', 'F2', 'B2', 'U2', 'D2']     # G3   #
+]                                            #-#-#-#-
+#--------------------------------------------------------------#
+
 import copy, random
 from cube import Cube
-
 
 class Color():
     '''
@@ -27,18 +52,6 @@ class Color():
     BACK = 'R'
     LEFT = 'G'
     RIGHT = 'B'
-
-PHASE_START = [0,  1,  1,  2,  2,  4]
-PHASE_END   = [7, 13, 13, 15, 15, 17]
-
-MOVES_SET = [                                #-#-#-#
-    ['L',  'R',  'F',  'B',  'U',  'D' ],    # G0  #
-    ['L2', 'R2', 'F',  'B',  'U',  'D' ],    # G1.1#
-    ['L2', 'R2', 'F',  'B',  'U',  'D' ],    # G1.2#
-    ['L2', 'R2', 'F2', 'B2', 'U',  'D' ],    # G2.1#
-    ['L2', 'R2', 'F2', 'B2', 'U',  'D' ],    # G2.2#
-    ['F2', 'R2', 'F2', 'B2', 'U2', 'D2']     # G3  #
-]                                            #-#-#-#
 
 
 class Individual(object):
@@ -162,7 +175,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (10 * w) + c
+                result = (CONST_PHASE_0 * w) + c
 
             elif self.phase == 1:
                 '''
@@ -191,7 +204,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (10 * w) + c
+                result = (CONST_PHASE_1 * w) + c
 
             elif self.phase == 2:
                 '''
@@ -218,7 +231,7 @@ class Individual(object):
                 w += 0 if f[0] == Color.LEFT or f[0] == Color.RIGHT else 1
                 w += 0 if f[2] == Color.LEFT or f[2] == Color.RIGHT else 1
 
-                result = (10 * w) + c
+                result = (CONST_PHASE_1 * w) + c
                 # Fim do mesmo código da fase 1 #
 
                 v = 0
@@ -238,7 +251,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (40 * v) + result
+                result = (CONST_PHASE_2 * v) + result
 
             elif self.phase == 3:
                 '''
@@ -273,7 +286,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (5 * y) + c
+                result = (CONST_PHASE_3 * y) + c
 
             elif self.phase == 4:
                 x, y = 0, 0
@@ -301,6 +314,8 @@ class Individual(object):
                     all_corners[i][1] != all_corners[i+1][1]:
                         y += 1
 
+                result = (CONST_PHASE_3 * y) + c
+
                 # Fim do mesmo código da fase 3 #
 
                 #-#-# Recebe uma punição cada cor de cubo que não é a
@@ -315,7 +330,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = 5 * (x + (2 * y)) + c
+                result = (CONST_PHASE_4 * x) + result
 
             elif self.phase == 5:
                 '''
@@ -336,7 +351,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (5 * z) + c
+                result = (CONST_PHASE_5 * z) + c
 
             self.fitness = result
 
