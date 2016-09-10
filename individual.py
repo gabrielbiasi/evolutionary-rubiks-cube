@@ -9,28 +9,59 @@ Trabalho Prático 1
 
 Feito por Gabriel de Biasi, 2016672212.
 """
-import math, copy, random
+import copy, random
 from cube import Cube
+
+
+class Color():
+    '''
+    Importante!
+    Esta classe se comporta como um 'Enum' à fim
+    de facilitar a troca de cores de referência
+    caso o arquivo de entrada esteja invertido
+    de alguma forma.
+    '''
+    TOP = 'Y'
+    BOTTOM = 'W'
+    FRONT = 'O'
+    BACK = 'R'
+    LEFT = 'G'
+    RIGHT = 'B'
+
+PHASE_START = [0,  1,  1,  2,  2,  4]
+PHASE_END   = [7, 13, 13, 15, 15, 17]
+
+MOVES_SET = [                                #-#-#-#
+    ['L',  'R',  'F',  'B',  'U',  'D' ],    # G0  #
+    ['L2', 'R2', 'F',  'B',  'U',  'D' ],    # G1.1#
+    ['L2', 'R2', 'F',  'B',  'U',  'D' ],    # G1.2#
+    ['L2', 'R2', 'F2', 'B2', 'U',  'D' ],    # G2.1#
+    ['L2', 'R2', 'F2', 'B2', 'U',  'D' ],    # G2.2#
+    ['F2', 'R2', 'F2', 'B2', 'U2', 'D2']     # G3  #
+]                                            #-#-#-#
+
 
 class Individual(object):
 
-    def __init__(self, cube, genes=[]):
-        self.genes = list(genes)
-        self.cube = cube
+    def __init__(self, ind):
+        '''
+        Construtor do Indivíduo
+        Se o parâmetro passado for um indivíduo, é
+        feita então uma cópia.
+        '''
+        if isinstance(ind, Individual):
+            self.cube = copy.deepcopy(ind.cube)
+            self.genes = list(ind.genes)
+            self.fitness = ind.fitness
+            self.phase = ind.phase
+            self.size = ind.size
 
-        self.phase_start_length = [0,  1,  1,  2,  4]
-        self.phase_end_length =   [7, 13, 13, 15, 17]
-        self.fitness = [-1,-1,-1,-1,-1]
-        self.phase = 0
-
-        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
-        self.g = [                              #-#-#-#-
-        ['F', 'R', 'U', 'B', 'L', 'D' ],        # G0   #
-        ['F', 'U', 'B', 'D', 'R2', 'L2'],       # G1   #
-        ['F', 'U', 'B', 'D', 'R2', 'L2'],       # G1.2 #
-        ['U', 'D', 'R2', 'L2', 'F2', 'B2'],     # G2   #
-        ['F2', 'R2', 'U2', 'B2', 'L2', 'D2']]   # G3   #
-        #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+        else:
+            self.cube = copy.deepcopy(ind)
+            self.genes = list()
+            self.fitness = -1
+            self.phase = 0
+            self.size = 0
 
 
     def __repr__(self):
@@ -38,190 +69,314 @@ class Individual(object):
 
 
     def __str__(self):
-        cube = self.get_cube()
-        cube.colored_printf()
-        return "{}[L{}][F{}]".format(self.genes, len(self.genes), self.fitness)
+        '''
+        Representação gráfica do indivíduo.
+        '''
+        self.cube.colored_printf()
+        return "{}[PH{}][L{}][F{}]".format(self.phase, self.genes, self.size, self.fitness)
 
 
     def mutation(self, phase):
+        '''
+        Este método cria uma nova jogada à ser aplicada no cubo
+        mágico, de acordo com a fase atual do algoritmo, temos
+        movimentos específicos e quantidade limitada, pelas listas
+        PHASE_START, PHASE_END e MOVES_SET. Após a criação a os
+        movimentos são "limpos" e acrescentados ao indivíduo.
+        '''
+        # Atualiza a fase e reseta o fitness
         self.phase = phase
+        self.fitness = -1
 
-        # Reseta o fitness
-        self.fitness[self.phase] = -1
-
+        # Geração aleatória de uma jogada
         new_genes = list()
-        size = random.randint(self.phase_start_length[self.phase], self.phase_end_length[self.phase])
+        size = random.randint(PHASE_START[self.phase], PHASE_END[self.phase])
         for i in range(size):
-            new_genes.append(random.choice(self.g[self.phase]))
+            new_genes.append(random.choice(MOVES_SET[self.phase]))
 
+        # A jogada é aplicada ao cubo
+        self.apply(new_genes)
+
+        #-# WORKAROUND #-#
+        # A junção do último movimento já feito com o novo primeiro movimento
+        # pode ser um possível candidato à limpeza. O último movimento é retirado
+        # do indivídio e ele "participa" da limpeza.
+        if self.size > 0:
+            self.size -= 1
+            last_move = self.genes.pop()
+            new_genes.insert(0, last_move)
+
+        # Limpeza de movimentos
+        new_genes = self.clean(new_genes)
+        self.size += len(new_genes)
         self.genes += new_genes
-        self.clean(self.genes)
 
 
     def get_fitness(self, phase):
+        '''
+        Cálculo da fitness
+        Recebe por parâmetro a fase atual do
+        algoritmo para realizar o cálculo corretamente.
+        '''
         self.phase = phase
-        c = len(self.genes)
-        my_cube = self.get_cube()
+        c = self.size
 
-        if self.fitness[self.phase] == -1:
+        if self.fitness == -1:
             result = 0
             if self.phase == 0:
+                '''
+                Cálculo da fitness G0 -> G1
+                Os meios precisam ser orientados da maneira correta,
+                ou seja, é possível colocá-los em seus lugares sem uso
+                dos movimentos L e R.
+                '''
                 w = 0
 
+                #-#-# Mapeamento de todos os meios do cubo #-#-#
+                # Deu trabalho :(
                 edge_pieces = [
-                    (my_cube.matrix[0][1][0], my_cube.matrix[1][1][2]), # O->G
-                    (my_cube.matrix[0][1][2], my_cube.matrix[2][1][0]), # O->B
-                    (my_cube.matrix[0][0][1], my_cube.matrix[4][2][1]), # O->Y
-                    (my_cube.matrix[0][2][1], my_cube.matrix[5][0][1]), # O->W
+                    (self.cube.matrix[0][1][0], self.cube.matrix[1][1][2]), # O->G
+                    (self.cube.matrix[0][1][2], self.cube.matrix[2][1][0]), # O->B
+                    (self.cube.matrix[0][0][1], self.cube.matrix[4][2][1]), # O->Y
+                    (self.cube.matrix[0][2][1], self.cube.matrix[5][0][1]), # O->W
 
-                    (my_cube.matrix[3][1][0], my_cube.matrix[2][1][2]), # R->B
-                    (my_cube.matrix[3][1][2], my_cube.matrix[1][1][0]), # R->G
-                    (my_cube.matrix[3][0][1], my_cube.matrix[4][0][1]), # R->Y
-                    (my_cube.matrix[3][2][1], my_cube.matrix[5][2][1]), # R->W
+                    (self.cube.matrix[3][1][0], self.cube.matrix[2][1][2]), # R->B
+                    (self.cube.matrix[3][1][2], self.cube.matrix[1][1][0]), # R->G
+                    (self.cube.matrix[3][0][1], self.cube.matrix[4][0][1]), # R->Y
+                    (self.cube.matrix[3][2][1], self.cube.matrix[5][2][1]), # R->W
 
-                    (my_cube.matrix[1][0][1], my_cube.matrix[4][1][0]), # G->Y
-                    (my_cube.matrix[1][2][1], my_cube.matrix[5][1][0]), # G->W
+                    (self.cube.matrix[1][0][1], self.cube.matrix[4][1][0]), # G->Y
+                    (self.cube.matrix[1][2][1], self.cube.matrix[5][1][0]), # G->W
 
-                    (my_cube.matrix[2][0][1], my_cube.matrix[4][1][2]), # B->Y
-                    (my_cube.matrix[2][2][1], my_cube.matrix[5][1][2])  # B->W
+                    (self.cube.matrix[2][0][1], self.cube.matrix[4][1][2]), # B->Y
+                    (self.cube.matrix[2][2][1], self.cube.matrix[5][1][2])  # B->W
                 ]
 
+                # A cada meio não-orientado, 1 ponto de punição.
                 for piece in edge_pieces:
-                    if piece[0] in ['Y', 'W']:
+                    if piece[0] in [Color.TOP, Color.BOTTOM]:
                         w += 1
-                    elif piece[0] in ['B', 'G'] and piece[1] in ['O', 'R']:
+                    elif piece[0] in [Color.LEFT, Color.RIGHT] and \
+                    piece[1] in [Color.FRONT, Color.BACK]:
                         w += 1
 
-                result = (5 * (2 * w)) + c
+                # Parâmetros de multiplicação
+                # Aumenta ou diminui a pressão seletiva da fase.
+                result = (10 * w) + c
 
             elif self.phase == 1:
+                '''
+                Cálculo da fitness G1 -> G2 (Parte 1)
+                Nesta parte 1, é colocado os meios na camada do meio
+                apenas. Este processo facilita a convergência para o
+                real cálculo da fitness G1->G2 na parte 2.
+                '''
                 w = 0
-                f = my_cube.matrix[0]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('O') - l.count('R')
+                #-#-# Punição por meios fora da camada do meio. #-#-#
+                f = self.cube.matrix[0][1] # Face da frente, camada do meio.
+                w += 0 if f[0] == Color.FRONT or f[0] == Color.BACK else 1
+                w += 0 if f[2] == Color.FRONT or f[2] == Color.BACK else 1
 
-                f = my_cube.matrix[1]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('B') - l.count('G')
+                f = self.cube.matrix[3][1] # Face de trás, camada do meio.
+                w += 0 if f[0] == Color.FRONT or f[0] == Color.BACK else 1
+                w += 0 if f[2] == Color.FRONT or f[2] == Color.BACK else 1
 
-                f = my_cube.matrix[2]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('B') - l.count('G')
+                f = self.cube.matrix[1][1] # Face da esquerda, camada do meio.
+                w += 0 if f[0] == Color.LEFT or f[0] == Color.RIGHT else 1
+                w += 0 if f[2] == Color.LEFT or f[2] == Color.RIGHT else 1
 
-                f = my_cube.matrix[3]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('O') - l.count('R')
+                f = self.cube.matrix[2][1] # Face da direita, camada do meio.
+                w += 0 if f[0] == Color.LEFT or f[0] == Color.RIGHT else 1
+                w += 0 if f[2] == Color.LEFT or f[2] == Color.RIGHT else 1
 
-                result = (5 * (2 * w)) + c
+                # Parâmetros de multiplicação
+                # Aumenta ou diminui a pressão seletiva da fase.
+                result = (10 * w) + c
 
             elif self.phase == 2:
-                # same code of phase1 #
+                '''
+                Cálculo da fitness G1 -> G2 (Parte 2)
+                Todos as cores FRONT e BACK precisam estar
+                nas faces FRONT e BACK.
+                '''
+                # Mesmo código da fase 1 #
                 w = 0
-                f = my_cube.matrix[0]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('O') - l.count('R')
+                #-#-# Punição por meios fora da camada do meio. #-#-#
+                f = self.cube.matrix[0][1] # Face da frente, camada do meio.
+                w += 0 if f[0] == Color.FRONT or f[0] == Color.BACK else 1
+                w += 0 if f[2] == Color.FRONT or f[2] == Color.BACK else 1
 
-                f = my_cube.matrix[1]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('B') - l.count('G')
+                f = self.cube.matrix[3][1] # Face de trás, camada do meio.
+                w += 0 if f[0] == Color.FRONT or f[0] == Color.BACK else 1
+                w += 0 if f[2] == Color.FRONT or f[2] == Color.BACK else 1
 
-                f = my_cube.matrix[2]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('B') - l.count('G')
+                f = self.cube.matrix[1][1] # Face da esquerda, camada do meio.
+                w += 0 if f[0] == Color.LEFT or f[0] == Color.RIGHT else 1
+                w += 0 if f[2] == Color.LEFT or f[2] == Color.RIGHT else 1
 
-                f = my_cube.matrix[3]
-                l = [f[1][0], f[1][2]]
-                w += 2 - l.count('O') - l.count('R')
+                f = self.cube.matrix[2][1] # Face da direita, camada do meio.
+                w += 0 if f[0] == Color.LEFT or f[0] == Color.RIGHT else 1
+                w += 0 if f[2] == Color.LEFT or f[2] == Color.RIGHT else 1
 
-                result = (5 * (2 * w)) + c
-                # end of the same code of phase1 #
+                result = (10 * w) + c
+                # Fim do mesmo código da fase 1 #
 
                 v = 0
-
-                f = my_cube.matrix[4]
-                l = [f[0][0], f[0][2], f[2][0], f[2][2]]
-                v += 4 - l.count('Y') - l.count('W')
-
-                f = my_cube.matrix[5]
-                l = [f[0][0], f[0][2], f[2][0], f[2][2]]
-                v += 4 - l.count('Y') - l.count('W')
+                #-#-# Punição para cada canto não orientado. #-#-#
+                f = self.cube.matrix[4] # Face de cima
+                v += 0 if f[0][0] == Color.TOP or f[0][0] == Color.BOTTOM else 1
+                v += 0 if f[0][2] == Color.TOP or f[0][2] == Color.BOTTOM else 1
+                v += 0 if f[2][0] == Color.TOP or f[2][0] == Color.BOTTOM else 1
+                v += 0 if f[2][2] == Color.TOP or f[2][2] == Color.BOTTOM else 1
 
 
-                result = (10 * (4 * v)) + result
+                f = self.cube.matrix[5] # Face de baixo
+                v += 0 if f[0][0] == Color.TOP or f[0][0] == Color.BOTTOM else 1
+                v += 0 if f[0][2] == Color.TOP or f[0][2] == Color.BOTTOM else 1
+                v += 0 if f[2][0] == Color.TOP or f[2][0] == Color.BOTTOM else 1
+                v += 0 if f[2][2] == Color.TOP or f[2][2] == Color.BOTTOM else 1
+
+                # Parâmetros de multiplicação
+                # Aumenta ou diminui a pressão seletiva da fase.
+                result = (40 * v) + result
 
             elif self.phase == 3:
-                x, y = 0, 0
+                '''
+                Cálculo da fitness G2 -> G3 (Parte 1)
+                Todos as faces precisam ter sua cor original ou sua cor oposta,
+                além dos cantos vizinhos precisam compartilhar a mesma cor "lateral",
+                não importando o topo/baixo.
+                '''
+                y = 0
+                #-#-# Mapeamento de todos os cantos do cubo #-#-#
+                # Também deu trabalho :(
                 all_corners = [
-                    (my_cube.matrix[0][0][0], my_cube.matrix[1][0][2]), #O->G
-                    (my_cube.matrix[0][2][0], my_cube.matrix[1][2][2]), #O->G
+                    (self.cube.matrix[0][0][0], self.cube.matrix[1][0][2]), #Y-O-G
+                    (self.cube.matrix[0][2][0], self.cube.matrix[1][2][2]), #W-O-G
 
-                    (my_cube.matrix[0][0][2], my_cube.matrix[2][0][0]), #O->B
-                    (my_cube.matrix[0][2][2], my_cube.matrix[2][2][0]), #O->B
+                    (self.cube.matrix[0][0][2], self.cube.matrix[2][0][0]), #Y-O-B
+                    (self.cube.matrix[0][2][2], self.cube.matrix[2][2][0]), #W-O-B
 
-                    (my_cube.matrix[3][0][0], my_cube.matrix[2][0][2]), #R->B
-                    (my_cube.matrix[3][2][0], my_cube.matrix[2][2][2]), #R->B
+                    (self.cube.matrix[3][0][0], self.cube.matrix[2][0][2]), #Y-R-B
+                    (self.cube.matrix[3][2][0], self.cube.matrix[2][2][2]), #W-R-B
 
-                    (my_cube.matrix[3][0][2], my_cube.matrix[1][0][0]), #R->G
-                    (my_cube.matrix[3][2][2], my_cube.matrix[1][2][0]), #R->G
+                    (self.cube.matrix[3][0][2], self.cube.matrix[1][0][0]), #Y-R-G
+                    (self.cube.matrix[3][2][2], self.cube.matrix[1][2][0]), #W-R-G
                 ]
+
+                #-#-# Punição para cada canto da camada superior que não combina
+                # sua cor com o canto da camada inferior (formando uma "coluna"). #-#-#
+                for i in range(0, 8, 2):
+                    if all_corners[i][0] != all_corners[i+1][0] or \
+                    all_corners[i][1] != all_corners[i+1][1]:
+                        y += 1
+
+                # Parâmetros de multiplicação
+                # Aumenta ou diminui a pressão seletiva da fase.
+                result = (5 * y) + c
+
+            elif self.phase == 4:
+                x, y = 0, 0
+                # Mesmo código da fase 3 #
+                #-#-# Mapeamento de todos os cantos do cubo #-#-#
+                # Também deu trabalho :(
+                all_corners = [
+                    (self.cube.matrix[0][0][0], self.cube.matrix[1][0][2]), #Y-O-G
+                    (self.cube.matrix[0][2][0], self.cube.matrix[1][2][2]), #W-O-G
+
+                    (self.cube.matrix[0][0][2], self.cube.matrix[2][0][0]), #Y-O-B
+                    (self.cube.matrix[0][2][2], self.cube.matrix[2][2][0]), #W-O-B
+
+                    (self.cube.matrix[3][0][0], self.cube.matrix[2][0][2]), #Y-R-B
+                    (self.cube.matrix[3][2][0], self.cube.matrix[2][2][2]), #W-R-B
+
+                    (self.cube.matrix[3][0][2], self.cube.matrix[1][0][0]), #Y-R-G
+                    (self.cube.matrix[3][2][2], self.cube.matrix[1][2][0]), #W-R-G
+                ]
+
+                #-#-# Punição para cada canto da camada superior que não combina
+                # sua cor com o canto da camada inferior (formando uma "coluna"). #-#-#
+                for i in range(0, 8, 2):
+                    if all_corners[i][0] != all_corners[i+1][0] or \
+                    all_corners[i][1] != all_corners[i+1][1]:
+                        y += 1
+
+                # Fim do mesmo código da fase 3 #
+
+                #-#-# Recebe uma punição cada cor de cubo que não é a
+                # cor da correta ou não é a cor oposta da face. #-#-#
                 OP = {'O':'R','R':'O','W':'Y','Y':'W','G':'B','B':'G'}
-                for face in my_cube.matrix:
+                for face in self.cube.matrix:
                     center = face[1][1]
                     for i in range(3):
                         for j in range(3):
                             if face[i][j] != center and face[i][j] != OP[center]:
                                 x += 1
 
-                #for corner in all_corners:
-                #    if corner[0] != corner[1]:
-                #        y += 1
-
+                # Parâmetros de multiplicação
+                # Aumenta ou diminui a pressão seletiva da fase.
                 result = 5 * (x + (2 * y)) + c
 
-            elif self.phase == 4:
+            elif self.phase == 5:
+                '''
+                Cálculo da fitness G3 -> G4 (Resolvido)
+                Agora apenas movimentos de 180 graus são permitidos, a função
+                de fitness simplesmente olha a cor de cada cubo e verifica com
+                o centro.
+                '''
                 z = 0
-                for face in my_cube.matrix:
+                #-#-# Fase final, recebe uma punição por cada cor
+                # que não é a cor da face atual. #-#-#
+                for face in self.cube.matrix:
                     center = face[1][1]
                     for i in range(3):
                         for j in range(3):
                             if face[i][j] != center:
                                 z += 1
 
+                # Parâmetros de multiplicação
+                # Aumenta ou diminui a pressão seletiva da fase.
                 result = (5 * z) + c
 
-            self.fitness[self.phase] = result
+            self.fitness = result
 
-        return self.fitness[self.phase]
+        return self.fitness
 
 
-    def get_cube(self):
-        my_cube = copy.deepcopy(self.cube)
-
-        for gene in self.genes:
-            mode = 0
+    def apply(self, new_moves):
+        '''
+        Este método aplica os novos movimentos gerados
+        pela mutação para o cubo que pertence à este
+        indivíduo.
+        '''
+        for gene in new_moves:
+            mode = 0 # Movimento Horário
             if len(gene) == 2:
-                mode = 1 if gene[1] == 'i' else 2
+                mode = 1 if gene[1] == 'i' else 2 # Movimento anti-horário ou 180
             if gene[0] == 'F':
-                my_cube.move_f(mode)
+                self.cube.move_f(mode)
             elif gene[0] == 'R':
-                my_cube.move_r(mode)
+                self.cube.move_r(mode)
             elif gene[0] == 'U':
-                my_cube.move_u(mode)
+                self.cube.move_u(mode)
             elif gene[0] == 'B':
-                my_cube.move_b(mode)
+                self.cube.move_b(mode)
             elif gene[0] == 'L':
-                my_cube.move_l(mode)
+                self.cube.move_l(mode)
             elif gene[0] == 'D':
-                my_cube.move_d(mode)
+                self.cube.move_d(mode)
             else:
                 print 'RADIATION DETECTED'
                 exit()
 
-        # Retorna apenas a cópia do cubo
-        return my_cube
-
 
     def clean(self, moves_list):
+        '''
+        Este método recebe os novos movimentos
+        obtidos pela mutação  e realiza uma limpeza
+        em busca de movimentos complementares ou
+        movimentos que não geram efeito final no cubo.
+        '''
         INVERSE = {'F': 'Fi','L': 'Li','R': 'Ri','B': 'Bi','U': 'Ui','D': 'Di','Fi': 'F','Li': 'L',
         'Ri': 'R','Bi': 'B','Ui': 'U','Di': 'D','F2': 'F2','L2': 'L2','R2': 'R2','B2': 'B2','U2': 'U2',
         'D2': 'D2'}
@@ -231,29 +386,32 @@ class Individual(object):
         'R2 Ri': 'R','B2 Bi': 'B','U2 Ui': 'U','D2 Di': 'D'}
         
         i = 0
-        while i < len(moves_list)-1:
-            x, y = moves_list[i], moves_list[i+1]
+        result = list(moves_list)
+        while i < len(result)-1:
+            x = result[i]
+            y = result[i+1]
 
-            #-# Genes inversos seguidos são removidos #-#
+            #-#-# Genes inversos seguidos são removidos #-#-#
             if x == INVERSE[y]: 
-                del moves_list[i]
-                del moves_list[i]
+                del result[i]
+                del result[i]
                 if i > 0:
                     i -= 1
 
-            #-# Genes iguais seguidos são convertidos para um gene 180 #-#
+            #-#-# Genes iguais seguidos são convertidos para um gene 180 #-#-#
             elif x == y:
-                del moves_list[i]
-                moves_list[i] = str(moves_list[i][0]+'2')
+                del result[i]
+                result[i] = str(result[i][0]+'2')
                 if i > 0:
                     i -= 1
 
             #-# Simplificação de um 90 e 180 para um 90 invertido #-#
             elif str(x+' '+y) in SIMPLE_180:
-                del moves_list[i]
-                moves_list[i] = SIMPLE_180[str(x+' '+y)]
+                del result[i]
+                result[i] = SIMPLE_180[str(x+' '+y)]
                 if i > 0:
                     i -= 1
 
             else:
                 i += 1
+        return result

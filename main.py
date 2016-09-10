@@ -10,29 +10,34 @@ Trabalho Prático 1
 
 Feito por Gabriel de Biasi, 2016672212.
 """
-#--------------------------------------------------------------
-#------------------------ CONSTANTES --------------------------
-#--------------------------------------------------------------
+#--------------------------------------------------------------#
+#------------------------ CONSTANTES --------------------------#
+#--------------------------------------------------------------#
 
-GENERATIONS = 150 # Máximo de Gerações
-LAMBDA = 50000 # População
-THETA = 1000 # Troca de Fase
+GENERATIONS = 100   # Máximo de gerações
+LAMBDA = 50000      # Tamanho da população
+THETA = 1000        # Necessário para troca de fase
 
-PHASE_COUNTER = 0
-#--------------------------------------------------------------
+#--------------------------------------------------------------#
 
-import re, sys, random, copy
+import re, sys, random
 from timeit import default_timer as timer
 
 from individual import Individual
 from cube import Cube
 
+PHASE_COUNTER = 0
 file_info = None
 best = None
 t1 = 0.0
 t2 = 0.0
 
 def to_file(best):
+    '''
+    Joga para um arquivo de saída o melhor conjunto
+    de movimentos encontrados pelo algoritmo e exibe
+    o tempo de execução.
+    '''
     t2 = timer()
     best_file = open("best/best{}.txt".format(sys.argv[2]), "w")
     for gene in best.genes:
@@ -44,8 +49,11 @@ def to_file(best):
 
 
 def generate_population(size, cube):
+    '''
+    Cria a população vazia de (size) indivíduos
+    e aplica a primeira mutação.
+    '''
     population = list()
-    # Cria a população e aplica a primeira mutação
     for i in range(size):
         ind = Individual(cube)
         ind.mutation(0)
@@ -55,10 +63,15 @@ def generate_population(size, cube):
 
 
 def evolution(cube):
+    '''
+    Algoritmo principal do trabalho.
+    Gera a população e gerencia o fluxo
+    das gerações.
+    '''
     global best, t1, PHASE_COUNTER
     random.seed(timer())
 
-    t1 = timer()
+    t1 = timer() # Timer inicia neste ponto
     population = generate_population(LAMBDA, cube)
 
     # Controle geral das gerações
@@ -66,27 +79,29 @@ def evolution(cube):
     try:
         while generation <= GENERATIONS:
 
-            # Cálculo do Fitness e Fase de seleção
+            # Cálculo do fitness e fase de seleção
             population.sort(key=lambda x: x.get_fitness(PHASE_COUNTER))
             candidates = list(population[:THETA])
             best = candidates[0]
-            print '\n',best
+            #print '\n', best
 
-            # Cálculo de cubos resolvidos na fase atual
+
+            # Condição de parada final.
+            if PHASE_COUNTER == 5 and best.get_fitness(PHASE_COUNTER) == best.size:
+                    print 'FOUND! %d MOVES!' % best.size,
+                    to_file(best)
+
+
+            # Contagem de cubos resolvidos da fase
+            # atual para provável troca de fase.
             solved_count = 0
             solved_phase = True
             for ind in candidates:
-                if ind.get_fitness(PHASE_COUNTER) > len(ind.genes):
+                if ind.get_fitness(PHASE_COUNTER) > ind.size:
                     solved_phase = False
                     break
                 else:
                     solved_count += 1
-
-            # Condição de parada final
-            if PHASE_COUNTER == 4:
-                if best.get_fitness(PHASE_COUNTER) == len(best.genes):
-                    print 'FOUND!',
-                    to_file(best)
 
             #--------------------------------------------------------------
             #--------------------- OBTENÇÃO DE DADOS ----------------------
@@ -106,11 +121,11 @@ def evolution(cube):
 
             file_info.write('%d %d %d %d\n' % tup)'''    
 
-            # Tempo de Execução
+            # Tempo de Execução de cada geração
             t_now = timer()
             m = (t_now-t1) / 60
             s = (t_now-t1) % 60
-            sys.stdout.write('\rG %d (%dm %ds)\tPhase: %d/4\tSolved.: %d/%d\t\t' % (generation, m, s, PHASE_COUNTER, solved_count, THETA))
+            sys.stdout.write('G %d (%dm %ds)\tPhase: %d/5\tSolved.: %d/%d\n' % (generation, m, s, PHASE_COUNTER, solved_count, THETA))
             sys.stdout.flush()
             #--------------------------------------------------------------
             #--------------------------------------------------------------
@@ -120,18 +135,22 @@ def evolution(cube):
             if solved_phase:
                 PHASE_COUNTER += 1
 
+            # Criação da nova população para a próxima geração,
+            # duplicando os candidatos da geração anterior.
             i = 0
-            new_size = len(candidates)
+            new_size = THETA
             while new_size < LAMBDA:
                 ind = random.choice(candidates)
-                new_ind = Individual(cube, ind.genes)
+                new_ind = Individual(ind)
                 candidates.append(new_ind)
                 new_size += 1
 
+            # Todos os indivíduos da nova população
+            # sofrem mutação.
             for ind in candidates:
                 ind.mutation(PHASE_COUNTER)
 
-            # Fim de uma geração
+            # Fim de uma geração.
             population = candidates
             generation += 1
 
@@ -145,18 +164,25 @@ def evolution(cube):
 
 if __name__ == '__main__':
 
+    # Condição de teste dos argumentos de entrada
     if len(sys.argv) < 2 or len(sys.argv) > 4:
         print 'args failed'
         exit()
 
+    # Criação do objeto Cube
     cube = None
     with open(sys.argv[1], 'r') as file:
 
+        # Neste trabalho, apenas os cubos de
+        # 3 dimensões são aceitos.
         dimensions = int(file.readline())
         if dimensions != 3:
             print 'FAILED\nOnly 3 dimensions cubes are accepted.'
             exit()
 
+        # A estrutura abaixo permite que o arquivo de entrada
+        # tenha a ordem das faces livremente, pois o código se
+        # adapta à ordem de faces do arquivo.
         pos = 0
         active = -1
         cube = Cube()
@@ -181,16 +207,27 @@ if __name__ == '__main__':
             pos = 0
 
     if len(sys.argv) == 4:
+        '''
+        Se um terceiro argumento é passado por parâmetro de entrada,
+        ele é considerado um indivíduo e então é exibido o cubo de
+        entrada com os movimentos do arquivo.
+        '''
         print 'TEST'
         with open(sys.argv[3], 'r') as file:
             data = file.readline()
             genes = [str(x) for x in re.findall('(\S\S*)', data)]
 
             print '%d MOVES' % len(genes)
-            my_move = Individual(cube, genes)
-            result = my_move.get_cube()
-            result.colored_printf()
+            my_move = Individual(cube)
+            my_move.apply(genes)
+            my_move.cube.colored_printf()
+            print genes
     else:
+        '''
+        Condição normal do algoritmo, a função
+        (evolution) é chamada e o fluxo de gerações
+        se inicia.
+        '''
         print 'EVOLUTION'
         file_info = open('data/data{}.txt'.format(sys.argv[2]), 'w')
         file_info.write('-1 %d %d\n' % (THETA, LAMBDA))

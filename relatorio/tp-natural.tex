@@ -28,16 +28,28 @@ Av. Antônio Carlos, 6627 -- Pampulha -- Belo Horizonte -- MG
 \maketitle
 
 \section{Descrição do Problema}
-  O brinquedo ``Cubo Mágico'' ou \textit{Rubik's Cube} foi criado por Rubik em 1974 e distribuído comercialmente em 1980. Possui um conjunto de 26 cubos menores, 6 faces com três tipos de cubos distintos: São 4 centros, 12 meios e 8 quinas. Cada tipo cubo possui um número específico de cores, onde os centros possui uma cor, meios possuem duas cores e as quinas possuem três cores.
+  O brinquedo ``Cubo Mágico'' ou \textit{Rubik's Cube} foi criado por Ernő Rubik no ano de  1974 e distribuído comercialmente em 1980. Possui um conjunto de 26 cubos menores, 6 faces com três tipos de cubos distintos: São 4 centros, 12 meios e 8 quinas. Cada tipo cubo possui um número específico de cores, onde os centros possui uma cor, meios possuem duas cores e as quinas possuem três cores.
 
-  É possível realizar movimentos em faces do cubo mágico sendo possível rotacionar os cubos desta face. Há 3 movimentos distintos que podem ser feitos em cada face, sendo eles: rotação horária, rotação anti-horária e dupla rotação. Logo, o cubo mágico tem um total de 18 movimentos possíveis. O objetivo do jogo é fazer com que todas as faces tenham a mesma cor. Na \autoref{fig:cube} temos na esquerda um cubo em um estado ``bagunçado'' e outro no estado concluído.
+  É possível realizar movimentos em faces do cubo mágico sendo possível rotacionar os cubos desta face. Há 3 movimentos distintos que podem ser feitos em cada face, sendo eles: rotação horária, rotação anti-horária e dupla rotação. Logo, o cubo mágico tem um total de 18 movimentos possíveis.
 
+  O objetivo principal deste jogo é fazer com que todas as faces tenham a mesma cor. Na \autoref{fig:cube} temos na esquerda um cubo em um estado ``bagunçado'' e outro no estado resolvido.
 
   \begin{figure}[!ht]
     \centering
     \caption{Cubo mágico bagunçado e um cubo mágico resolvido}
     \includegraphics[scale=0.3]{images/cube.png}
     \label{fig:cube}
+  \end{figure}
+
+  O mapeamento dos movimentos possíveis no cubo mágico está de acordo com a \autoref{fig:moves}. Os movimentos horários nas faces da esquerda, direita, atrás, baixo, frente e topo serão, respectivamente, $L$, $R$, $B$, $D$, $F$ e $U$. Ao acrescentar a letra $i$, o movimento se torna anti-horário e ao acrescentar o número $2$, o movimento se tornará duplo.
+
+  Foi provado matematicamente em 2010 que um cubo mágico em qualquer estado pode ser resolvido com 20 movimentos ou menos. Os cálculos foram realizados por um super computador fornecido pela Google. Detalhes sobre este projeto é encontrado no site do projeto: \url{http://www.cube20.org/}.
+
+  \begin{figure}[!ht]
+    \centering
+    \caption{Movimentos do cubo mágico}
+    \includegraphics[scale=1.8]{images/moves.png}
+    \label{fig:moves}
   \end{figure}
 
   Neste trabalho, é proposto um algoritmo evolutivo que tenha capacidade de resolver uma dada instância de cubo mágico colocando-o no estado resolvido e ao mesmo tempo buscando minimizar a quantidade de movimentos necessários.
@@ -50,22 +62,17 @@ Av. Antônio Carlos, 6627 -- Pampulha -- Belo Horizonte -- MG
 
     \begin{description}
       \item [G0] Todos os estados do cubo mágico possíveis. Naturalmente, todos os cubos mágicos já estão presentes no conjunto G0. Sua ordem é de $|G0| = 4.33 \times 10^{19}$.
-      \item [G1] Nesta categoria, os meios do cubo estão devidamente \textbf{orientados}, ou seja, não são necessários os movimentos simples $[L, R]$ para colocá-los em sua posição original. Sua ordem é de $|G1| = 2.11 \times 10^{19}$.
+      \item [G1] Nesta categoria, os meios do cubo estão devidamente \textbf{orientados}, ou seja, não são permitidos os movimentos simples $[L, R]$ para colocá-los em sua posição original. Sua ordem é de $|G1| = 2.11 \times 10^{19}$.
       \item [G2] Na categoria G2 os meios da camada do meio não podem ser movidos de suas faces e a face de cima e a face de baixo só possuem suas respectivas cores amarelo/branco. Sua ordem é de $|G2| = 1.95 \times 10^{10}$.
       \item [G3] Todas as faces opostas do cubo mágico agora possuem suas determinadas cores. As faces frente/atrás terão laranja ou vermelho, cima/baixo terão amarelo ou branco e esquerda/direita terão verde ou azul. Sua ordem é de $|G3| = 6.63 \times 10^{5}$.
       \item [G4] Estado do cubo resolvido, $|G4| = 1$.
     \end{description}
 
-
-
-
-
-
-  Os movimentos de cada categoria que permitem levar para a próxima sem a quebra de propriedade são os seguintes:
+  Os movimentos definidos por Thistlethwaite para cada categoria permitem levar para a próxima sem a quebra de propriedade. Este método de resolução facilita o estilo que um algoritmo evolutivo funciona, fazendo com que toda a população ganhe movimentos diferentes, entretanto, todos ainda pertencem à uma mesma categoria. Os movimentos permitidos são os descritos na \autoref{tab_mov}.
 
   \begin{table}[ht]
       \centering
-      \caption{Movimentos permitidos em cada categoria}
+      \caption{Movimentos permitidos em cada categoria} \label{tab_mov}
       \begin{tabular}{|c|c|}
         \hline
         \textbf{Categoria} & \textbf{Conjunto de Movimentos Permitidos}  \\ \hline
@@ -77,43 +84,50 @@ Av. Antônio Carlos, 6627 -- Pampulha -- Belo Horizonte -- MG
       \end{tabular}
   \end{table}
 
-  \cite{thistlethwaiteES}.
 
 \section{Descrição Geral da Implementação}
-  Nesta seção, será discutido como as funções básicas de algoritmos evolucionários foram implementadas para o contexto do problema proposto.
+  \cite{thistlethwaiteES} propuseram em seu artigo a utilização do método de Thistlethwaite porém com algumas modificações nas regras de movimentos e definição das funções de $fitness$.
+
+  Neste trabalho, foi decidido manter os movimentos originais do trabalho de Thistlethwaite e as funções de $fitness$ e mutação precisaram ser adaptadas. A estrutura do algoritmo é explicada nas próximas subseções.
 
   \subsection{Fluxo de Trabalho do Algoritmo}
     O algoritmo inicia com a definição de três constantes, $Alpha\ (\alpha)$, $Theta\ (\Theta)$ e $Lambda\ (\lambda)$. Estas constantes representam, respectivamente, a quantidade de gerações máxima do algoritmo, o tamanho da população e a quantidade de indivíduos resolvidos necessária para avançar uma categoria.
 
-  \subsection{Definição de um Indivíduo}
-    Neste algoritmo, um indivíduo é representado por uma lista de movimentos no cubo mágico, partindo do estado do cubo que foi passado quando o algoritmo iniciou. Exemplo:
+    A população inicial de tamanho $\Theta$ é criada e todos os indivíduos estão vazios. Portanto, todos os indivíduos sofrem sua primeira mutação para iniciar as gerações.
 
-      \begin{table}[ht]
-      \centering
-      \caption{Exemplos de Indivíduos}
-      \begin{tabular}{|c|c|}
-        \hline
-        \textbf{ID} & \textbf{Conjunto de Movimentos}             \\ \hline
-            $I1$             &  $[F, R2, Ui, B, L2,\dots, D, Fi]$ \\ \hline
-            $I2$             &  $[Di, Ui, R2, D2, U, Li]$         \\ \hline
-            $I3$             &  $[U2, R2, Ui, D, F2]$             \\ \hline
-            $I4$             &  $[\emptyset]$                     \\ \hline
-      \end{tabular}
-      \end{table}
+    No início da geração, os indivíduos são ordenados por ranqueamento e os $\lambda$ melhores indivíduos são considerados os candidatos para a reprodução. Se todos os candidatos já pertecerem à próxima categoria, o algoritmo todo avança para a próxima categoria mudando o comportamento da função $fitness$ e de mutação. Todos os cadidatos possuem a mesma probabilidade de se reproduzirem e criar a próxima população, ao fim do processo, todos os novos indivíduos sofrem mutação e iniciam a próxima geração.
+
+    O algoritmo encerra quando um indivíduo chega na categoria G4 ou quando o número de gerações definido por $\alpha$ for alcançado.
+
+  \subsection{Definição de um Indivíduo}
+    Neste algoritmo, um indivíduo é representado por uma simples lista de movimentos no cubo mágico, partindo do estado do cubo que foi passado quando o algoritmo iniciou.
 
     É importante ressaltar que cada indivíduo deste algoritmo evolucionário possui \textbf{quatro} valores de $fitness$ diferentes, que é melhor explicado na \autoref{fit}.
-
  
   \subsection{Seleção}
-    A seleção de indivíduos é feita por ranqueamento simples, onde todos os todos indivíduos da população atual são ordenados por $fitness$ e os $\lambda$ primeiros indivíduos
-    são selecionados e considerados os candidatos para gerar a próxima geração.
+    A seleção de indivíduos é feita por ranqueamento simples, onde todos os todos indivíduos da população são ordenados pelo seu $fitness$ da categoria atual. Os $\lambda$ primeiros indivíduos são selecionados e considerados os candidatos para gerar a próxima população.
 
     Após a seleção, todos $\lambda$ candidatos terão a probabilidade $\frac{1}{\lambda}$ de serem escolhidos e então serem duplicados. Este processo se repete até que a nova população alcance a quantidade de $\Theta$ indivíduos.
 
-
   \subsection{Mutação}
-    Etc.
+    Ao criar a população inicial, todos os $\Theta$ indivíduos são vazios. O único processo que os modifica neste algoritmo é a mutação. De acordo com a categoria atual dos indivíduos da população, eles recebem uma sequência de movimentos diferentes. Ao iniciar uma mutação, é sorteado a quantidade de movimentos que serão concatenados, com uma quantidade mínima e máxima definida.
 
+    Na \autoref{tab_mut}, está classificado a quantidade de movimentos que um indivíduo pode receber de acordo com cada categoria. Essas quantidades foram devidamente calculadas e definidas por Thistlethwaite.
+
+    \begin{table}[ht]
+      \centering
+      \caption{Exemplos de Indivíduos} \label{tab_mut}
+      \begin{tabular}{|c|c|}
+        \hline
+        \textbf{Categoria} & \textbf{Quantidade de Movimentos}  \\ \hline
+            $G0\to G1$     &  $0 \leq l \leq 7$                 \\ \hline
+            $G1\to G2$     &  $1 \leq l \leq 13$                \\ \hline
+            $G2\to G3$     &  $2 \leq l \leq 15$                \\ \hline
+            $G3\to G4$     &  $4 \leq l \leq 17$                \\ \hline
+      \end{tabular}
+    \end{table}
+
+    Ao criar a nova sequência de movimentos, é provável que alguns movimentos possam ser removidos por serem complementares ou não produzir efeito final no cubo mágico. Portanto, todas as vezes que a mutação produz uma sequência de movimentos, ela é verificada pela função $clean$ em busca destes tipos de movimentos.
 
   \subsection{Função $clean$} \label{clean}
     Esta função é chamada toda vez que uma sequência de mutação é criada para um indivíduo. A fim de reduzir o número de movimentos necessários para resolver o cubo mágico, movimentos em sequência que não geram efeitos no cubo são removidos e movimentos que podem ser simplificados são alterados, sem perda de contexto final do cubo.
@@ -133,7 +147,62 @@ Av. Antônio Carlos, 6627 -- Pampulha -- Belo Horizonte -- MG
     \end{table}
 
   \subsection{Função $fitness$} \label{fit}
-  
+    Para adequar-se ao estilo de categorias, foi necessário criar quatro funções de $fitness$ diferentes, sendo uma para cada mudança de categoria. Nas próximas subseções, é apresentado cada uma delas.
+
+    Todas as condições que são apresentadas nas próximas seções são ruins, ou seja, na implementação o valor do $fitness$ recebe acrécimo de valor por condição satisfeita e o objetivo dos indivíduos é minimizar este valor.
+
+    Para fins de padronização, o cubo mágico que estamos trabalhando tem a frente com a cor laranja, atrás com a cor vermelha, topo com a cor amarela, baixo com a cor branca, esquerda com a cor verde e a direita com a cor azul.
+
+    \subsubsection{Mudança de $G0 \to G1$}
+      Neste momento, precisamos verificar se os movimentos dos indivíduos deixam o cubo no estado G1, onde os meios estão orientados. Logo, é feita as seguintes verifições nas faces \textbf{frente, atrás, esquerda e direita}:
+
+      \begin{itemize}
+         \item Cor amarela/branca nos meios da face;
+         \item Cor azul/verde nos meios da face porém junto com laranja/vermelha nos lados.
+       \end{itemize}
+
+      Se algum destes casos forem verdadeiros, o cubo ainda não pertence à categoria G1. Esta fase do algoritmo tende à ser a mais rápida, pois no pior caso são necessários apenas sete movimentos para orientar os meios.
+
+    \subsubsection{Mudança de $G1 \to G2$}
+      Como os cubos G1 já estão com os meios orientados, nesta fase os meios que pertencem à camada do meio precisam ser colocados lá, porém não é necessário colocá-lo em seu local exato, apenas na camada.
+
+      Para colocar os cubos meio na camada do meio é feita a seguinte verificação nas faces \textbf{frente, atrás, esquerda e direita}:
+      \begin{itemize}
+        \item Cubos meio da camada do meio fora da camada;
+      \end{itemize}
+
+      Agora, nesta fase os cantos também precisam ser orientados. Para orientar os cantos, é feita a seguinte verificação nas faces \textbf{topo e baixo}:
+
+      \begin{itemize}
+        \item Cores azul/verde nos cantos da face;
+        \item Cores vermelho/laranja nos cantos da face.
+      \end{itemize}
+
+      Se algum destes casos forem verdadeiros, o cubo ainda não pertence à categoria G2. Esta fase do algoritmo é um pouco mais lenta, pois trabalha com dois processos distintos. Na implementação real, este processo foi dividido em 2 sub-fases para melhor convergência.
+
+    \subsubsection{Mudança de $G2 \to G3$}
+      Os cubos na categoria G2 possuem suas faces topo e baixo com suas cores amarelo/branco. Agora, é necessário fazer o mesmo para o resto das faces. Além disso, é preciso igualar as cores dos cantos 
+
+      Portanto, para alcançar a categoria G3, é feita a seguinte verificação nas faces \textbf{frente, atrás, esquerda e direita}:
+
+      \begin{itemize}
+        \item As duas cores dos cantos da camada de cima são diferentes das cores dos cantos da camada de baixo (cores dos cantos que estão nas faces cima/baixo não são consideradas), verificado para os quatro pares de cantos;
+        \item Cores vermelho/laranja na faces esquerda/direita;
+        \item Cores azul/verde nas faces frente/atrás.
+      \end{itemize}
+
+      Se algum destes casos forem verdadeiros, o cubo ainda não pertence à categoria G3.
+      Esta fase do algoritmo também é lenta, pois são necessários muitos movimentos para as cores irem as suas respectivas faces.
+
+    \subsubsection{Mudança de $G3 \to G4$}
+      Neste ponto, todos os cubos estão na categoria G3 e possuem apenas cores corretas e cores opostas em suas faces. É necessário agora apenas os movimentos duplos para concluir o cubo mágico. Para avançar para a categoria G4, é feita a seguinte verificação em \textbf{todas} as faces:
+
+      \begin{itemize}
+        \item Cores que não combinam com a cor do centro da face.
+      \end{itemize}
+
+      Se este caso for verdadeiro, o cubo ainda não pertence à categoria G4.
+      Esta fase do algoritmo vários movimentos duplos são necessários para resolvê-lo. Também é considera uma fase lenta. Entretanto, os indivíduos que passarem por esta fase concluem o objetivo do jogo.
 
 \section{Execução dos Experimentos}
   lala
