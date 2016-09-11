@@ -15,7 +15,7 @@ Feito por Gabriel de Biasi, 2016672212.
 #------------------------ CONSTANTES --------------------------#
 #--------------------------------------------------------------#
 
-SEED = 12345        # Semente p/ o gerador de pseudo-aleatórios
+DETERMINIST = True  # Semente fixa ou aleatória
 GENERATIONS = 100   # Máximo de gerações
 LAMBDA = 50000      # Tamanho da população
 THETA = 1000        # Indivíduos necessários para troca de fase
@@ -70,7 +70,10 @@ def evolution(cube):
     Gera a população e gerencia o fluxo
     das gerações.
     '''
-    random.seed(SEED)
+
+    #
+    random.seed(12345 if DETERMINIST else timer())
+
     global best, t1, PHASE_COUNTER
 
     t1 = timer() # Timer inicia neste ponto
@@ -88,13 +91,6 @@ def evolution(cube):
             best = candidates[0]
             #print '\n', best
 
-
-            # Condição de parada final.
-            if PHASE_COUNTER == 5 and best.get_fitness(PHASE_COUNTER) == best.size:
-                    print 'FOUND! %d MOVES!' % best.size,
-                    to_file(best)
-
-
             # Contagem de cubos resolvidos da fase
             # atual para provável troca de fase.
             solved_count = 0
@@ -111,18 +107,15 @@ def evolution(cube):
             #--------------------------------------------------------------
             
             # Fitness Média
-            '''
-            soma1 = 0.0
-            soma2 = 0.0
-            for ind in population:
-                s = len(ind.genes)
-                soma1 += s
-                soma2 += ind.get_fitness(PHASE_COUNTER) - s
-            tam_media = soma1 / float(LAMBDA)
-            fit_media = soma2 / float(LAMBDA)
-            tup = (generation, fit_media, tam_media, solved_count, PHASE_COUNTER)
 
-            file_info.write('%d %d %d %d\n' % tup)'''    
+            soma1 = 0.0
+            for ind in candidates:
+                soma1 += ind.size
+            tam_candidatos = soma1 / float(THETA)
+
+            tup = (generation, tam_candidatos)
+
+            file_info.write('%d %d\n' % tup)
 
             # Tempo de Execução de cada geração
             t_now = timer()
@@ -134,6 +127,12 @@ def evolution(cube):
             #--------------------------------------------------------------
             #--------------------------------------------------------------
             #--------------------------------------------------------------
+
+            # Condição de parada final.
+            if PHASE_COUNTER == 5 and best.get_fitness(PHASE_COUNTER) == best.size:
+                print 'FOUND! %d MOVES!' % best.size,
+                to_file(best)
+
 
             # Mudança de fase!
             if solved_phase:

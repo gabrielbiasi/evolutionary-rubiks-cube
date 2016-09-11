@@ -28,11 +28,11 @@
 \maketitle
 
 \section{Descrição do Problema}
-  O brinquedo ``Cubo Mágico'' ou \textit{Rubik's Cube} foi criado por Ernő Rubik no ano de  1974 e distribuído comercialmente em 1980. Possui um conjunto de 26 cubos menores, 6 faces com três tipos de cubos distintos: São 4 centros, 12 meios e 8 quinas. Cada tipo cubo possui um número específico de cores, onde os centros possui uma cor, meios possuem duas cores e as quinas possuem três cores.
+  O brinquedo ``Cubo Mágico'' ou \textit{Rubik's Cube} foi criado por Ernő Rubik no ano de  1974 e distribuído comercialmente em 1980. Possui um conjunto de 26 peças menores, 6 faces com três tipos de peças distintas: São 4 centros, 12 meios e 8 quinas. Cada peça possui um número específico de cores, onde os centros possui uma cor, meios possuem duas cores e as quinas possuem três cores.
 
-  É possível realizar movimentos em faces do cubo mágico sendo possível rotacionar os cubos desta face. Há 3 movimentos distintos que podem ser feitos em cada face, sendo eles: rotação horária, rotação anti-horária e dupla rotação. Logo, o cubo mágico tem um total de 18 movimentos possíveis.
+  É possível realizar movimentos em faces do cubo mágico sendo possível rotacionar as peças desta face. Há 3 movimentos distintos que podem ser feitos em cada face, sendo eles: rotação horária, rotação anti-horária e dupla rotação. Logo, o cubo mágico tem um total de 18 movimentos possíveis.
 
-  O objetivo principal deste jogo é fazer com que todas as faces tenham a mesma cor. Na \autoref{fig:cube} temos na esquerda um cubo em um estado ``bagunçado'' e outro no estado resolvido.
+  O objetivo principal deste jogo é fazer com que todas as faces tenham a mesma cor. Na \autoref{fig:cube} temos na esquerda um cubo mágico em um estado ``bagunçado'' e outro no estado resolvido.
 
   \begin{figure}[!ht]
     \centering
@@ -55,17 +55,17 @@
   Neste trabalho, é proposto um algoritmo evolutivo que tenha capacidade de resolver uma dada instância de cubo mágico colocando-o no estado resolvido e ao mesmo tempo buscando minimizar a quantidade de movimentos necessários.
 
 \section{Metodologia}
-  Para alcançar o objetivo do jogo, foi utilizado como base um método de resolução criado pelo professor \textit{Morwen Thistlethwaite}, onde o espaço de buscas de soluções é categorizado e então o cubo precisa ser levado de uma categoria para a próxima utilizando apenas os movimentos permitidos da categoria atual \cite{thistlethwaite}.
+  Para alcançar o objetivo do jogo, foi utilizado como base um método de resolução criado pelo professor \textit{Morwen Thistlethwaite}, onde o espaço de buscas de soluções é categorizado e então o cubo mágico precisa ser levado de uma categoria para a próxima utilizando apenas os movimentos permitidos da categoria atual \cite{thistlethwaite}.
 
-  \subsection{Categorias do Cubo}
+  \subsection{Categorias do Cubo Mágico}
     Thistlethwaite criou 5 categorias, que descreve o tão próximo um cubo mágico está da solução. As categorias diminuem drasticamente o espaço de busca de soluções, fazendo com que a busca pela solução simplifique com o avanço entre as categorias.
 
     \begin{description}
       \item [G0] Todos os estados do cubo mágico possíveis. Naturalmente, todos os cubos mágicos já estão presentes no conjunto G0. Sua ordem é de $|G0| = 4.33 \times 10^{19}$.
-      \item [G1] Nesta categoria, os meios do cubo estão devidamente \textbf{orientados}, ou seja, não são permitidos os movimentos simples $[L, R]$ para colocá-los em sua posição original. Sua ordem é de $|G1| = 2.11 \times 10^{19}$.
-      \item [G2] Na categoria G2 os meios da camada do meio não podem ser movidos de suas faces e a face de cima e a face de baixo só possuem suas respectivas cores amarelo/branco. Sua ordem é de $|G2| = 1.95 \times 10^{10}$.
+      \item [G1] Nesta categoria, as peças do meio do cubo mágico estão devidamente \textbf{orientadas}, ou seja, não são permitidos os movimentos simples $[L, R]$ para colocá-las em sua posição original. Sua ordem é de $|G1| = 2.11 \times 10^{19}$.
+      \item [G2] Na categoria G2 as peças do meio da camada do meio não podem ser movidas de suas faces e a face de cima e a face de baixo só possuem suas respectivas cores amarelo/branco. Sua ordem é de $|G2| = 1.95 \times 10^{10}$.
       \item [G3] Todas as faces opostas do cubo mágico agora possuem suas determinadas cores. As faces frente/atrás terão laranja ou vermelho, cima/baixo terão amarelo ou branco e esquerda/direita terão verde ou azul. Sua ordem é de $|G3| = 6.63 \times 10^{5}$.
-      \item [G4] Estado do cubo resolvido, $|G4| = 1$.
+      \item [G4] Estado do cubo mágico resolvido, $|G4| = 1$.
     \end{description}
 
   Os movimentos definidos por Thistlethwaite para cada categoria permitem levar para a próxima sem a quebra de propriedade. Este método de resolução facilita o estilo que um algoritmo evolutivo funciona, fazendo com que toda a população ganhe movimentos diferentes, entretanto, todos ainda pertencem à uma mesma categoria. Os movimentos permitidos são os descritos na \autoref{tab_mov}.
@@ -147,34 +147,34 @@
     \end{table}
 
   \subsection{Função $fitness$} \label{fit}
-    Para adequar-se ao estilo de categorias, foi necessário criar seis funções de $fitness$ diferentes, definidas como fases. O objetivo do algoritmo é \textbf{minimizar} os valores de $fitness$ de cada fase. Todos os valores terão o tamanho do indivíduo acrescentado à eles, portanto um indivíduo está resolvido para uma fase atual quando:
+    Para adequar-se ao estilo de categorias, foi necessário criar seis funções de $fitness$ diferentes, definidas como fases. O objetivo do algoritmo é \textbf{minimizar} os valores de $fitness$ de cada fase. Todos as funções terão uma constante $k_i$ multiplicando uma variável, que representa um controle de pressão seletiva nos indivíduos, junto à soma do tamanho do indivíduo.
+
+    Seja $c$ a quantidade de movimentos do indivíduo, $i$ a fase atual do algoritmo. Um indivíduo está resolvido para uma fase atual quando:
 
     \begin{equation}
     fitness\_fase_i = c
     \end{equation}
 
-    Onde $c$ representa a quantidade de movimentos do indivíduo e $i$ representa a fase atual do algoritmo.
-
     Para fins de padronização, o cubo mágico deste algoritmo tem a face da frente com a cor laranja, face  de trás com a cor vermelha, face do topo com a cor amarela, face de baixo com a cor branca, face da esquerda com a cor verde e a face da direita com a cor azul.
 
     \subsubsection{Mudança de $G0 \to G1$}
-      Neste momento, precisamos verificar se os movimentos dos indivíduos deixam o cubo no estado G1, onde os meios do cubo mágico estão orientados. Sendo $w$ o número de meios mal-orientados, a função de fitness é definida como:
+      Neste momento, precisamos verificar se os movimentos dos indivíduos deixam o cubo no estado G1, onde as peças do meio do cubo mágico estão orientadas. Sendo $w$ o número de meios mal-orientados, a função de fitness é definida como:
 
       \begin{equation}
-      fitness\_fase_0 = (10 \times w) + c
+      fitness\_fase_0 = (k_0 \cdot w) + c
       \end{equation}
 
     \subsubsection{Mudança de $G1 \to G2$}
-      Nesta fase os meios que pertencem à camada do meio precisam ser colocados em sua camada, porém não é necessário colocá-lo em seu local exato. Sendo $w$ o número de meios fora da camada do meio, a função de fitness é definida como:
+      Nesta fase as peças do meio que pertencem à camada do meio precisam ser colocados em sua camada, porém não é necessário colocá-las em seu local exato. Sendo $w$ o número de peças do meio fora da camada do meio, a função de fitness é definida como:
       
       \begin{equation}
-      fitness\_fase_1 = (10 \times w) + c
+      fitness\_fase_1 = (k_1 \cdot w) + c
       \end{equation}
 
-      Ainda na mesma categoria, agora nesta nova fase os cantos também precisam ser orientados. Sendo $v$ o número de cantos mal-orientados, a função de fitness é definida como:
+      Ainda na mesma categoria, agora nesta nova fase as peças dos cantos também precisam ser orientadas. Sendo $v$ o número de cantos mal-orientados, a função de fitness é definida como:
 
       \begin{equation}
-      fitness\_fase_2 = (40 \times v) + fitness\_fase_1
+      fitness\_fase_2 = (k_2 \cdot v) + fitness\_fase_1
       \end{equation}
 
       Como as fases 1 e 2 são parte do mesmo grupo de movimentos, suas funções de $fitness$ foram separadas para melhor convergência porém no cálculo final são agregadas para garantir o mesmo resultado final.
@@ -185,13 +185,13 @@
       Cada par de cantos do cubo mágico neste algoritmo é definido como o canto que está na camada do topo junto ao canto que está na camada de baixo, formando uma ``coluna'' no cubo mágico. Sendo $y$ o número de cada par de cantos incorretos, a função de $fitness$ é definida como:
 
       \begin{equation}
-      fitness\_fase_3 = (5 \times y) + c
+      fitness\_fase_3 = (k_3 \cdot y) + c
       \end{equation}
 
-      Ainda nesta categoria, agora é preciso fazer que cada face do cubo tenha sua cor correta ou sua cor oposta. Sendo $x$ o número de cores erradas para todas as faces e $y$ o número de pares de cantos incorretos da fase anterior, a função de $fitness$ é definida como: 
+      Ainda nesta categoria, agora é preciso fazer que cada face do cubo tenha sua cor correta ou sua cor oposta. Sendo $x$ o número de cores erradas verificando todas as faces, a função de $fitness$ é definida como: 
 
       \begin{equation}
-      fitness\_fase_4 = (5 \times (x + 2 \times y)) + c
+      fitness\_fase_4 = (k_4 \cdot x) + fitness\_fase_3
       \end{equation}
 
       Como as fases 3 e 4 também fazem parte do mesmo grupo de movimentos, suas funções de $fitness$ também foram separadas, similar ao processo das fases 1 e 2.
@@ -200,17 +200,60 @@
       Neste ponto, todos os cubos estão na categoria G3 e possuem apenas cores corretas e cores opostas em suas faces. É necessário agora apenas os movimentos duplos para concluir o cubo mágico. Sendo $z$ o número de cores que não estão na sua face correta, a função de $fitness$ é definida como:
 
       \begin{equation}
-      fitness\_fase_5 = (5 \times z) + c
+      fitness\_fase_5 = (k_5 \cdot z) + c
       \end{equation}
 
       O algoritmo encerra ao primeiro indivíduo que obtiver a $fitness\_fase_5 = c$, pois
       pela ordenação da fase de seleção terá a menor quantidade de movimentos.
 
 \section{Execução dos Experimentos}
-  lala
+  Para a execução dos experimentos, primeiramente foi necessário realizar o $tunning$ das constantes de pressão seletiva. Valores muito altos convergiam as primeiras fases fazendo que com as fases posteriores estagnassem, entretanto, valores baixos demais fazia o desempenho do algoritmo cair drasticamente. Portanto, os valores das constantes foram definidas da seguinte maneira:
+
+      \begin{table}[ht]
+      \centering
+      \caption{Valores das constantes de pressão seletiva para cada fase} \label{tab_const}
+      \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        \textbf{$k_0$} & \textbf{$k_1$} & \textbf{$k_2$} & \textbf{$k_3$} & \textbf{$k_4$} & \textbf{$k_5$} \\ \hline
+        $10$ & $10$ & $50$ & $10$ & $50$ & $10$ \\ \hline
+      \end{tabular}
+    \end{table}
+
+  Os valores de $\theta$ e $\lambda$ precisam de uma proporsão entre si são fundamentais para o funcionamento do algoritmo. Foram realizados os testes de diferença entre os valores, com proporções de $1\%$, $2\%$ e $4\%$. Nos gráficos abaixo, temos a evolução do tamanho médio da população com o avanço das gerações. Se as linhas encerram no gráfico, isso indica que uma solução foi encontrada.
+
+  Na \autoref{fig:graph1}, os parâmetros utilizados no algoritmo foram $(\theta, \lambda)=[(375, 37500),(500,50000),(750,75000)]$, mantendo a relação de $1\%$ entre eles. É possível verificar no gráfico que a instância $(750,75000)$ é a primeira à encontrar uma solução para o cubo, porém é a que possui mais indivíduos. A instância $(500,50000)$ encerra com mais de gerações e um resultado um pouco melhor. A instância $(375, 37500)$ utiliza mais algumas gerações e o resultado é maior que todos os outros.
+
+  \begin{figure}[!ht]
+    \centering
+    \caption{Relação de 1\% entre $\theta$ e $\lambda$}
+    \includegraphics[scale=0.6]{images/1_100.png}
+    \label{fig:graph1}
+  \end{figure}
+
+  Na \autoref{fig:graph2}, os parâmetros utilizados no algoritmo foram $(\theta, \lambda)=[(750, 37500),(1000,50000),(1500,75000)]$, mantendo a relação de $2\%$ entre eles. Neste caso, a convergência é mais lenta pela utilização de mais candidatos por geração, o que ajuda a garantir a diversidade dos indivíduos. A instância $(750, 37500)$ estagnou por um tempo na fase 4, porém entregou o melhor resultado; a instância $(1000,50000)$ terminou com menos gerações e a instância $(1500,75000)$ obteve uma pressão seletiva maior e acabou terminando antes de todos com um resultado aceitável.
+
+  \begin{figure}[!ht]
+    \centering
+    \caption{Relação de 2\% entre $\theta$ e $\lambda$}
+    \includegraphics[scale=0.6]{images/2_100.png}
+    \label{fig:graph2}
+  \end{figure}
+
+  Na \autoref{fig:graph3}, os parâmetros utilizados no algoritmo foram $(\theta, \lambda)=[(1500, 37500),(2000,50000),(3000,75000)]$, mantendo a relação de $4\%$ entre eles.
+
+  \begin{figure}[!ht]
+    \centering
+    \caption{Relação de 4\% entre $\theta$ e $\lambda$}
+    \includegraphics[scale=0.6]{images/4_100.png}
+    \label{fig:graph3}
+  \end{figure}
 
 \section{Conclusão}
-  Neste trabalho.
+  Neste trabalho, foi implementado uma versão evolutiva do método de resolução de cubo mágico proposta pelo Profº Morwen Thistlethwaite em 1981. Pudemos comprovar a eficácia do método deixando de utilizar as tabelas de jogadas por conjunto de movimentos criados através de mutações nos indivíduos.
+
+  Entretanto, o tamanho dos indivíduos gerados junto ao tempo necessário para executar o algoritmo não é eficiente quanto outras abordagens como buscas heurísticas ou algoritmos outros algoritmos determinísticos.
+
+  Foi possível verificar durante a implementação do algoritmo a inviabilidade de se utilizar apenas $crossovers$ e mutações genéricas oriundas de algoritmos evolutivos, dado que pequenas alterações no genótipo geravam grandes alterações no fenótipo.
 
 \bibliographystyle{sbc}
 \bibliography{ref}
