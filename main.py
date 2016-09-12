@@ -10,21 +10,21 @@ Trabalho Prático 1
 
 Feito por Gabriel de Biasi, 2016672212.
 """
+from timeit import default_timer as timer
 
-#--------------------------------------------------------------#
-#------------------------ CONSTANTES --------------------------#
-#--------------------------------------------------------------#
+#----------------------------------------------------------------#
+#-------------------------- CONSTANTES --------------------------#
+#----------------------------------------------------------------#
 
-DETERMINIST = True  # Semente fixa ou aleatória
+SEED = timer()      # Semente fixa ou aleatória
 GENERATIONS = 100   # Máximo de gerações
 LAMBDA = 50000      # Tamanho da população
 THETA = 1000        # Indivíduos necessários para troca de fase
+CONST_PHASES = (10, 10, 25, 10, 25, 10) # Pressão seletiva p/ fase
 
-#--------------------------------------------------------------#
+#----------------------------------------------------------------#
 
-import re, sys, random
-from timeit import default_timer as timer
-
+import os, re, sys, random
 from individual import Individual
 from cube import Cube
 
@@ -72,7 +72,7 @@ def evolution(cube):
     '''
 
     #
-    random.seed(12345 if DETERMINIST else timer())
+    random.seed(SEED)
 
     global best, t1, PHASE_COUNTER
 
@@ -106,18 +106,16 @@ def evolution(cube):
             #--------------------- OBTENÇÃO DE DADOS ----------------------
             #--------------------------------------------------------------
             
-            # Fitness Média
-
+            # Tamanho médio dos candidatos
             soma1 = 0.0
             for ind in candidates:
                 soma1 += ind.size
             tam_candidatos = soma1 / float(THETA)
 
             tup = (generation, tam_candidatos)
-
             file_info.write('%d %d\n' % tup)
 
-            # Tempo de Execução de cada geração
+            # Tempo de execução de cada geração
             t_now = timer()
             m = (t_now-t1) / 60
             s = (t_now-t1) % 60

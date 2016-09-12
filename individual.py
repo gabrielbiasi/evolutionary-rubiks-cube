@@ -13,13 +13,6 @@ Feito por Gabriel de Biasi, 2016672212.
 #--------------------------------------------------------------#
 #------------------------ CONSTANTES --------------------------#
 #--------------------------------------------------------------#
-#-#-# Pressão seletiva de cada fase #-#-#
-CONST_PHASE_0 = 10
-CONST_PHASE_1 = 10
-CONST_PHASE_2 = 50
-CONST_PHASE_3 = 10
-CONST_PHASE_4 = 50
-CONST_PHASE_5 = 10
 
 # G0, G1.1, G1.2, G2.1, G2.2, G3
 PHASE_START = [0,  1,  1,  2,  2,  4]
@@ -33,6 +26,21 @@ MOVES_SET = [                                #-#-#-#-
     ['L2', 'R2', 'F2', 'B2', 'U',  'D' ],    # G2.2 #
     ['F2', 'R2', 'F2', 'B2', 'U2', 'D2']     # G3   #
 ]                                            #-#-#-#-
+
+OP = {'O':'R','R':'O','W':'Y','Y':'W','G':'B','B':'G'}
+
+INVERSE = {'F': 'Fi','L': 'Li','R': 'Ri','B': 'Bi',
+'U': 'Ui','D': 'Di','Fi': 'F','Li': 'L','Ri': 'R',
+'Bi': 'B','Ui': 'U','Di': 'D','F2': 'F2','L2': 'L2',
+'R2': 'R2','B2': 'B2','U2': 'U2','D2': 'D2'}
+
+SIMPLE_180 = {'F F2': 'Fi','L L2': 'Li','R R2': 'Ri',
+'B B2': 'Bi','U U2': 'Ui','D D2': 'Di','F2 F': 'Fi',
+'L2 L': 'Li','R2 R': 'Ri','B2 B': 'Bi','U2 U': 'Ui',
+'D2 D': 'Di','Fi F2': 'F','Li L2': 'L','Ri R2': 'R',
+'Bi B2': 'B','Ui U2': 'U','Di D2': 'D','F2 Fi': 'F',
+'L2 Li': 'L','R2 Ri': 'R','B2 Bi': 'B','U2 Ui': 'U',
+'D2 Di': 'D'}
 #--------------------------------------------------------------#
 
 import copy, random
@@ -89,6 +97,30 @@ class Individual(object):
         return "{}[PH{}][L{}][F{}]".format(self.phase, self.genes, self.size, self.fitness)
 
 
+    def apply(self, new_moves):
+        '''
+        Este método aplica os novos movimentos gerados
+        pela mutação para o cubo que pertence à este
+        indivíduo.
+        '''
+        for gene in new_moves:
+            mode = 0 # Movimento horário
+            if len(gene) == 2:
+                mode = 1 if gene[1] == 'i' else 2 # Movimento anti-horário ou 180
+            if gene[0] == 'F':
+                self.cube.move_f(mode)
+            elif gene[0] == 'R':
+                self.cube.move_r(mode)
+            elif gene[0] == 'U':
+                self.cube.move_u(mode)
+            elif gene[0] == 'B':
+                self.cube.move_b(mode)
+            elif gene[0] == 'L':
+                self.cube.move_l(mode)
+            elif gene[0] == 'D':
+                self.cube.move_d(mode)
+
+
     def mutation(self, phase):
         '''
         Este método cria uma nova jogada à ser aplicada no cubo
@@ -103,26 +135,60 @@ class Individual(object):
 
         # Geração aleatória de uma jogada
         new_genes = list()
-        size = random.randint(PHASE_START[self.phase], PHASE_END[self.phase])
-        for i in range(size):
+        new_size = random.randint(PHASE_START[self.phase], PHASE_END[self.phase])
+        for i in range(new_size):
             new_genes.append(random.choice(MOVES_SET[self.phase]))
 
         # A jogada é aplicada ao cubo
         self.apply(new_genes)
 
-        #-# WORKAROUND #-#
-        # A junção do último movimento já feito com o novo primeiro movimento
-        # pode ser um possível candidato à limpeza. O último movimento é retirado
-        # do indivídio e ele "participa" da limpeza.
-        if self.size > 0:
-            self.size -= 1
-            last_move = self.genes.pop()
-            new_genes.insert(0, last_move)
-
         # Limpeza de movimentos
-        new_genes = self.clean(new_genes)
-        self.size += len(new_genes)
         self.genes += new_genes
+        self.size += new_size
+        self.clean()
+
+
+    def clean(self):
+        '''
+        Este método recebe os novos movimentos
+        obtidos pela mutação  e realiza uma limpeza
+        em busca de movimentos complementares ou
+        movimentos que não geram efeito final no cubo.
+        '''
+        i = 0
+        removed = 0
+        new_list = list(self.genes)
+        while i < self.size - removed - 1:
+            x = new_list[i]
+            y = new_list[i+1]
+            #-#-# Genes inversos seguidos são removidos #-#-#
+            if x == INVERSE[y]:
+                del new_list[i]
+                del new_list[i]
+                removed += 2
+                if i > 0:
+                    i -= 1
+
+            #-#-# Genes iguais seguidos são convertidos para um gene 180 #-#-#
+            elif x == y:
+                del new_list[i]
+                new_list[i] = str(new_list[i][0]+'2')
+                removed += 1
+                if i > 0:
+                    i -= 1
+
+            #-# Simplificação de um 90 e 180 para um 90 invertido #-#
+            elif str(x+' '+y) in SIMPLE_180:
+                del new_list[i]
+                new_list[i] = SIMPLE_180[str(x+' '+y)]
+                removed += 1
+                if i > 0:
+                    i -= 1
+            else:
+                i += 1
+        #-#-#
+        self.genes = new_list
+        self.size -= removed
 
 
     def get_fitness(self, phase):
@@ -131,6 +197,7 @@ class Individual(object):
         Recebe por parâmetro a fase atual do
         algoritmo para realizar o cálculo corretamente.
         '''
+        from main import CONST_PHASES
         self.phase = phase
         c = self.size
 
@@ -175,7 +242,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (CONST_PHASE_0 * w) + c
+                result = (CONST_PHASES[0] * w) + c
 
             elif self.phase == 1:
                 '''
@@ -204,7 +271,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (CONST_PHASE_1 * w) + c
+                result = (CONST_PHASES[1] * w) + c
 
             elif self.phase == 2:
                 '''
@@ -231,7 +298,7 @@ class Individual(object):
                 w += 0 if f[0] == Color.LEFT or f[0] == Color.RIGHT else 1
                 w += 0 if f[2] == Color.LEFT or f[2] == Color.RIGHT else 1
 
-                result = (CONST_PHASE_1 * w) + c
+                result = (CONST_PHASES[1] * w) + c
                 # Fim do mesmo código da fase 1 #
 
                 v = 0
@@ -251,7 +318,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (CONST_PHASE_2 * v) + result
+                result = (CONST_PHASES[2] * v) + result
 
             elif self.phase == 3:
                 '''
@@ -286,7 +353,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (CONST_PHASE_3 * y) + c
+                result = (CONST_PHASES[3] * y) + c
 
             elif self.phase == 4:
                 x, y = 0, 0
@@ -314,13 +381,12 @@ class Individual(object):
                     all_corners[i][1] != all_corners[i+1][1]:
                         y += 1
 
-                result = (CONST_PHASE_3 * y) + c
+                result = (CONST_PHASES[3] * y) + c
 
                 # Fim do mesmo código da fase 3 #
 
                 #-#-# Recebe uma punição cada cor de cubo que não é a
                 # cor da correta ou não é a cor oposta da face. #-#-#
-                OP = {'O':'R','R':'O','W':'Y','Y':'W','G':'B','B':'G'}
                 for face in self.cube.matrix:
                     center = face[1][1]
                     for i in range(3):
@@ -330,7 +396,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (CONST_PHASE_4 * x) + result
+                result = (CONST_PHASES[4] * x) + result
 
             elif self.phase == 5:
                 '''
@@ -351,82 +417,7 @@ class Individual(object):
 
                 # Parâmetros de multiplicação
                 # Aumenta ou diminui a pressão seletiva da fase.
-                result = (CONST_PHASE_5 * z) + c
+                result = (CONST_PHASES[5] * z) + c
 
             self.fitness = result
-
         return self.fitness
-
-
-    def apply(self, new_moves):
-        '''
-        Este método aplica os novos movimentos gerados
-        pela mutação para o cubo que pertence à este
-        indivíduo.
-        '''
-        for gene in new_moves:
-            mode = 0 # Movimento Horário
-            if len(gene) == 2:
-                mode = 1 if gene[1] == 'i' else 2 # Movimento anti-horário ou 180
-            if gene[0] == 'F':
-                self.cube.move_f(mode)
-            elif gene[0] == 'R':
-                self.cube.move_r(mode)
-            elif gene[0] == 'U':
-                self.cube.move_u(mode)
-            elif gene[0] == 'B':
-                self.cube.move_b(mode)
-            elif gene[0] == 'L':
-                self.cube.move_l(mode)
-            elif gene[0] == 'D':
-                self.cube.move_d(mode)
-            else:
-                print 'RADIATION DETECTED'
-                exit()
-
-
-    def clean(self, moves_list):
-        '''
-        Este método recebe os novos movimentos
-        obtidos pela mutação  e realiza uma limpeza
-        em busca de movimentos complementares ou
-        movimentos que não geram efeito final no cubo.
-        '''
-        INVERSE = {'F': 'Fi','L': 'Li','R': 'Ri','B': 'Bi','U': 'Ui','D': 'Di','Fi': 'F','Li': 'L',
-        'Ri': 'R','Bi': 'B','Ui': 'U','Di': 'D','F2': 'F2','L2': 'L2','R2': 'R2','B2': 'B2','U2': 'U2',
-        'D2': 'D2'}
-        SIMPLE_180 = {'F F2': 'Fi','L L2': 'Li','R R2': 'Ri','B B2': 'Bi','U U2': 'Ui','D D2': 'Di',
-        'F2 F': 'Fi','L2 L': 'Li','R2 R': 'Ri','B2 B': 'Bi','U2 U': 'Ui','D2 D': 'Di','Fi F2': 'F',
-        'Li L2': 'L','Ri R2': 'R','Bi B2': 'B','Ui U2': 'U','Di D2': 'D','F2 Fi': 'F','L2 Li': 'L',
-        'R2 Ri': 'R','B2 Bi': 'B','U2 Ui': 'U','D2 Di': 'D'}
-        
-        i = 0
-        result = list(moves_list)
-        while i < len(result)-1:
-            x = result[i]
-            y = result[i+1]
-
-            #-#-# Genes inversos seguidos são removidos #-#-#
-            if x == INVERSE[y]: 
-                del result[i]
-                del result[i]
-                if i > 0:
-                    i -= 1
-
-            #-#-# Genes iguais seguidos são convertidos para um gene 180 #-#-#
-            elif x == y:
-                del result[i]
-                result[i] = str(result[i][0]+'2')
-                if i > 0:
-                    i -= 1
-
-            #-# Simplificação de um 90 e 180 para um 90 invertido #-#
-            elif str(x+' '+y) in SIMPLE_180:
-                del result[i]
-                result[i] = SIMPLE_180[str(x+' '+y)]
-                if i > 0:
-                    i -= 1
-
-            else:
-                i += 1
-        return result
